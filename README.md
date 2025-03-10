@@ -6,11 +6,11 @@ Elle permet de gérer le personnel, le pointage, les congés et les contrats.
 
 ## Aperçu de l'application
 
-### Ajouter un collaborateur
-![Ajout collaborateur](public/images/addCollab.jpg)
-
 ### Liste des collaborateurs
 ![Collaborateurs](public/images/collaborateur.jpg)
+
+### Ajouter un collaborateur
+![Ajout collaborateur](public/images/addCollab.jpg)
 
 ### Résultat de la recherche des collaborateurs
 ![Résultat](public/images/ResultCollab.jpg)
