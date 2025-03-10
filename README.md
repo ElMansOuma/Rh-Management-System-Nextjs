@@ -12,6 +12,5 @@ Elle permet de gérer le personnel, le pointage, les congés et les contrats.
 ### Ajouter un collaborateur
 ![Ajout collaborateur](public/images/addCollab.jpg)
 
-### Résultat de la recherche des collaborateurs
-![Résultat](public/images/ResultCollab.jpg)
+
 
