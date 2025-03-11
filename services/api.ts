@@ -1,6 +1,13 @@
-// C:\Users\DELL\Downloads\managerhr\project\services\api.ts
+"use client";
 
-// Type pour les collaborateurs conforme à votre backend
+// Types
+export interface PieceJustificative {
+    id?: number;
+    nom: string;
+    type: string;
+    fichierUrl: string;
+}
+
 export interface Collaborateur {
     id?: number;
     nom: string;
@@ -8,8 +15,7 @@ export interface Collaborateur {
     cin: string;
     dateNaissance: string;
     lieuNaissance: string;
-    adresseDomicile: string; // Notez que le backend utilise adresseDomicile au lieu de adresse
-    adresse?: string; // Optional property to handle legacy data
+    adresseDomicile: string;
     cnss: string;
     origine: string;
     niveauEtude: string;
@@ -17,15 +23,13 @@ export interface Collaborateur {
     dateEntretien: string;
     dateEmbauche: string;
     description: string;
-    piecesJustificatives?: any[];
+    piecesJustificatives?: PieceJustificative[];
 }
 
-// URL de base de l'API
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // Service pour les collaborateurs
 export const collaborateurService = {
-    // Récupérer tous les collaborateurs
     getAll: async (): Promise<Collaborateur[]> => {
         const response = await fetch(`${API_URL}/api/collaborateurs`);
         if (!response.ok) {
@@ -34,7 +38,6 @@ export const collaborateurService = {
         return await response.json();
     },
 
-    // Récupérer un collaborateur par ID
     getById: async (id: number): Promise<Collaborateur> => {
         const response = await fetch(`${API_URL}/api/collaborateurs/${id}`);
         if (!response.ok) {
@@ -43,22 +46,13 @@ export const collaborateurService = {
         return await response.json();
     },
 
-    // Créer un nouveau collaborateur
     create: async (collaborateur: Collaborateur): Promise<Collaborateur> => {
-        // Adapter les noms de champs si nécessaire
-        const adaptedCollaborateur = {
-            ...collaborateur,
-            adresseDomicile: collaborateur.adresseDomicile || collaborateur.adresse,
-        };
-
-        delete (adaptedCollaborateur as any).adresse;
-
         const response = await fetch(`${API_URL}/api/collaborateurs`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(adaptedCollaborateur),
+            body: JSON.stringify(collaborateur),
         });
 
         if (!response.ok) {
@@ -69,22 +63,13 @@ export const collaborateurService = {
         return await response.json();
     },
 
-    // Mettre à jour un collaborateur
     update: async (id: number, collaborateur: Collaborateur): Promise<Collaborateur> => {
-        // Adapter les noms de champs si nécessaire
-        const adaptedCollaborateur = {
-            ...collaborateur,
-            adresseDomicile: collaborateur.adresseDomicile || collaborateur.adresse,
-        };
-
-        delete (adaptedCollaborateur as any).adresse;
-
         const response = await fetch(`${API_URL}/api/collaborateurs/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(adaptedCollaborateur),
+            body: JSON.stringify(collaborateur),
         });
 
         if (!response.ok) {
@@ -94,7 +79,6 @@ export const collaborateurService = {
         return await response.json();
     },
 
-    // Supprimer un collaborateur
     delete: async (id: number): Promise<boolean> => {
         const response = await fetch(`${API_URL}/api/collaborateurs/${id}`, {
             method: 'DELETE',
@@ -102,6 +86,46 @@ export const collaborateurService = {
 
         if (!response.ok) {
             throw new Error('Erreur lors de la suppression du collaborateur');
+        }
+
+        return true;
+    },
+};
+
+// Service pour les pièces justificatives
+export const pieceJustificativeService = {
+    getAllByCollaborateur: async (collaborateurId: number): Promise<PieceJustificative[]> => {
+        const response = await fetch(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`);
+        if (!response.ok) {
+            throw new Error('Erreur lors de la récupération des pièces justificatives');
+        }
+        return await response.json();
+    },
+
+    upload: async (collaborateurId: number, type: string, file: File): Promise<PieceJustificative> => {
+        const formData = new FormData();
+        formData.append('type', type);
+        formData.append('file', file);
+
+        const response = await fetch(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de l\'upload de la pièce justificative');
+        }
+
+        return await response.json();
+    },
+
+    delete: async (id: number): Promise<boolean> => {
+        const response = await fetch(`${API_URL}/api/pieces-justificatives/${id}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de la suppression de la pièce justificative');
         }
 
         return true;
