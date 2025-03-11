@@ -68,7 +68,7 @@ export function CollaborateurForm({ onSuccess, initialData }: CollaborateurFormP
     if (initialData) {
       setFormData(initialData);
 
-      // If we have a collaborateur ID, fetch their pieces justificatives
+      // If we have a collaborateur ID, fetch their pieces just
       if (initialData.id) {
         loadPiecesJustificatives(initialData.id);
       }
