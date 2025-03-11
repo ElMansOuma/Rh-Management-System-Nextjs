@@ -43,26 +43,36 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="pb-12 min-h-screen">
-      <div className="space-y-4 py-4 w-64">
-        <div className="px-3 py-2">
-          <div className="space-y-1">
+      <div className="h-screen w-64 bg-gradient-to-b from-gray-800 via-gray-600 to-blue-200 text-white fixed left-0 top-0 shadow-xl">
+        <div className="p-6">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-800 bg-clip-text text-transparent mb-8">
+            <br />
+          </h1>
+          <nav className="space-y-2">
             {sidebarItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                  pathname === item.href ? "bg-accent" : "transparent"
-                )}
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.title}
-              </Link>
+                <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                        "flex items-center space-x-3 p-4 rounded-xl transition-all duration-200",
+                        pathname === item.href
+                            ? "bg-gradient-to-r from-gray-800 via-gray-600 shadow-lg scale-105"
+                            : "hover:bg-white/10"
+                    )}
+                >
+                  <item.icon
+                      className={cn(
+                          "h-5 w-5 transition-transform duration-200",
+                          pathname === item.href ? "scale-110" : ""
+                      )}
+                  />
+                  <b>
+                    <span className="font-medium">{item.title}</span>
+                  </b>
+                </Link>
             ))}
-          </div>
+          </nav>
         </div>
       </div>
-    </div>
   );
 }
