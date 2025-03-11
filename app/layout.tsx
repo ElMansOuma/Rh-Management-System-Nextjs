@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { Sidebar } from '@/components/sidebar';
+import {ToastProvider} from "@/components/ui/toast";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -32,7 +33,7 @@ export default function RootLayout({
         <aside className="sidebar w-64 fixed h-[calc(100vh-4rem)] top-16">
           <Sidebar />
         </aside>
-        <main className="flex-1 ml-64 p-8">{children}</main>
+          <main className="flex-1 ml-64 p-8">  <ToastProvider>{children}</ToastProvider></main>
       </div>
     <footer/>
       </body>
