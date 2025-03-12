@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieceJustificative, pieceJustificativeService } from "@/services/api";
 import { PieceJustificativeList } from "./piece-justificative-list";
+import { PieceJustificativeForm } from "./piece-justificative-form";
 import { toast } from "@/components/ui/use-toast";
-import { FileCheck } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Define interface for form data
 export interface CollaborateurData {
@@ -20,7 +20,7 @@ export interface CollaborateurData {
   dateNaissance: string;
   lieuNaissance: string;
   adresse: string;
-  adresseDomicile?: string; // Add this to match API expectations
+  adresseDomicile?: string;
   cnss: string;
   origine: string;
   niveauEtude: string;
@@ -57,32 +57,21 @@ const emptyFormData: CollaborateurData = {
 export function CollaborateurForm({ onSuccess, initialData }: CollaborateurFormProps) {
   const [formData, setFormData] = useState<CollaborateurData>(initialData || emptyFormData);
   const [pieces, setPieces] = useState<PieceJustificative[]>([]);
-  const [activeTab, setActiveTab] = useState("info");
   const [loading, setLoading] = useState(false);
-  const [documentType, setDocumentType] = useState<string>("");
-  const [selectedFile, setSelectedFile] = useState<boolean>(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tempUploadedFiles, setTempUploadedFiles] = useState<File[]>([]);
+  const [tempDocuments, setTempDocuments] = useState<{name: string, file: File, type: string}[]>([]);
 
   // Update form data if initialData changes (useful for edit mode)
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
 
-      // If we have a collaborateur ID, fetch their pieces just
+      // If we have a collaborateur ID, fetch their pieces justificatives
       if (initialData.id) {
         loadPiecesJustificatives(initialData.id);
       }
     }
   }, [initialData]);
-
-  // Correction: effet supplémentaire pour mettre à jour l'état du tab quand initialData change
-  useEffect(() => {
-    // Si nous sommes en mode édition avec un ID valide, nous permettons
-    // l'activation de l'onglet documents, sinon nous revenons à l'onglet info
-    if (!initialData?.id && activeTab === "documents") {
-      setActiveTab("info");
-    }
-  }, [initialData, activeTab]);
 
   const loadPiecesJustificatives = async (collaborateurId: number) => {
     try {
@@ -103,100 +92,30 @@ export function CollaborateurForm({ onSuccess, initialData }: CollaborateurFormP
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prevData => ({
+      ...prevData,
       [id]: value
-    });
+    }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSuccess(formData);
-  };
 
-  const handleDocumentTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setDocumentType(e.target.value);
-  };
+    // If we have temporary documents, we'll need to include them with the submission
+    const dataToSubmit = {
+      ...formData,
+      tempDocuments: tempDocuments
+    };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedFile(!!e.target.files && e.target.files.length > 0);
-  };
-
-  // Correction: fonction pour changer manuellement d'onglet
-  const handleTabChange = (value: string) => {
-    // Vérifier si on peut changer vers l'onglet "documents"
-    if (value === "documents" && !initialData?.id) {
-      toast({
-        title: "Information",
-        description: "Veuillez d'abord enregistrer les informations du collaborateur.",
-        variant: "default",
-      });
-      return; // Ne pas changer d'onglet
-    }
-
-    // Si on peut changer d'onglet, mettre à jour l'état
-    setActiveTab(value);
-  };
-
-  const handlePieceUpload = async () => {
-    console.log("Upload attempt:", {
-      collaborateurId: initialData?.id,
-      documentType,
-      fileSelected: !!fileInputRef.current?.files?.[0]
-    });
-
-    if (!initialData?.id) {
-      toast({
-        title: "Information",
-        description: "Veuillez d'abord enregistrer les informations du collaborateur.",
-        variant: "default",
-      });
-      setActiveTab("info");
-      return;
-    }
-
-    const file = fileInputRef.current?.files?.[0];
-
-    if (!documentType || !file) {
-      toast({
-        title: "Information",
-        description: "Veuillez sélectionner un type de document et un fichier.",
-        variant: "default",
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await pieceJustificativeService.upload(initialData.id, documentType, file);
-      toast({
-        title: "Succès",
-        description: "Document ajouté avec succès",
-      });
-
-      // Reset form fields after successful upload
-      setDocumentType("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-        setSelectedFile(false);
-      }
-
-      // Reload pieces after upload
-      loadPiecesJustificatives(initialData.id);
-    } catch (error) {
-      console.error("Error uploading document:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'upload du document.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    onSuccess(dataToSubmit);
   };
 
   const handleDeletePiece = async (pieceId: number) => {
-    if (!initialData?.id) return;
+    if (!initialData?.id) {
+      // For temporary documents before save
+      setTempDocuments(prev => prev.filter((_, index) => index !== pieceId));
+      return;
+    }
 
     try {
       setLoading(true);
@@ -206,7 +125,9 @@ export function CollaborateurForm({ onSuccess, initialData }: CollaborateurFormP
         description: "Document supprimé avec succès",
       });
       // Reload pieces after deletion
-      loadPiecesJustificatives(initialData.id);
+      if (initialData.id) {
+        await loadPiecesJustificatives(initialData.id);
+      }
     } catch (error) {
       console.error("Error deleting document:", error);
       toast({
@@ -219,20 +140,65 @@ export function CollaborateurForm({ onSuccess, initialData }: CollaborateurFormP
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setTempUploadedFiles(prev => [...prev, file]);
+    }
+  };
+
+  const handleAddTempDocument = (documentName: string, documentType: string) => {
+    if (tempUploadedFiles.length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez d'abord sélectionner un fichier",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!documentName) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez donner un nom au document",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!documentType) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un type de document",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Add to temporary documents
+    const lastFile = tempUploadedFiles[tempUploadedFiles.length - 1];
+    setTempDocuments(prev => [...prev, { name: documentName, file: lastFile, type: documentType }]);
+
+    // Clear the file input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+
+    toast({
+      title: "Succès",
+      description: "Document ajouté temporairement",
+    });
+  };
+
   return (
       <div className="max-h-screen overflow-y-auto p-6 bg-white shadow-lg rounded-lg">
-        {/* Correction: Utilisation de notre fonction personnalisée pour gérer les changements d'onglets */}
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="info">Informations</TabsTrigger>
-            {/* Correction: on n'utilise plus le 'disabled' pour gérer le comportement */}
-            <TabsTrigger value="documents" className={!initialData?.id ? "opacity-50 cursor-not-allowed" : ""}>
-              Documents {!initialData?.id && "(Enregistrer d'abord)"}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="info">
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations du collaborateur</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="nom">Nom</Label>
@@ -339,83 +305,143 @@ export function CollaborateurForm({ onSuccess, initialData }: CollaborateurFormP
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 mt-6">
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" value={formData.description} onChange={handleChange} className="h-32" />
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex justify-end space-x-4">
-                <Button type="button" variant="outline" onClick={() => onSuccess(null)}>
-                  Annuler
-                </Button>
-                <Button type="submit">
-                  {initialData?.id ? "Mettre à jour" : "Enregistrer"}
-                </Button>
-              </div>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="documents">
-            <div className="space-y-6">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium mb-4">Ajouter un document</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="documentType">Type de document</Label>
-                    <select
-                        id="documentType"
-                        className="w-full border border-gray-300 rounded-md p-2 mt-1"
-                        value={documentType}
-                        onChange={handleDocumentTypeChange}
-                    >
-                      <option value="" disabled>Sélectionner un type</option>
-                      <option value="CIN">CIN</option>
-                      <option value="DIPLOME">Diplôme</option>
-                      <option value="AUTRE">Autre</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="documentFile">Fichier</Label>
-                    <Input
-                        id="documentFile"
-                        type="file"
-                        className="mt-1"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
+          {/* Documents section - directly in the same form, now accessible immediately */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Documents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {initialData?.id ? (
+                  // Existing collaborateur - use the regular document form and list
+                  <div className="space-y-6">
+                    <PieceJustificativeForm
+                        collaborateurId={initialData.id}
+                        onSuccess={() => {
+                          if (initialData.id) {
+                            loadPiecesJustificatives(initialData.id);
+                          }
+                        }}
                     />
+
+                    <div className="mt-6">
+                      <h3 className="text-lg font-medium mb-4">Documents du collaborateur</h3>
+                      {loading && pieces.length === 0 ? (
+                          <p>Chargement des documents...</p>
+                      ) : (
+                          <PieceJustificativeList
+                              collaborateurId={initialData.id}
+                              pieces={pieces}
+                              onUpdate={() => {
+                                if (initialData.id) {
+                                  loadPiecesJustificatives(initialData.id);
+                                }
+                              }}
+                              onDelete={handleDeletePiece}
+                          />
+                      )}
+                    </div>
                   </div>
-                </div>
+              ) : (
+                  // New collaborateur - use temporary document storage
+                  <div className="space-y-6">
+                    <div className="p-4 border rounded-md">
+                      <h3 className="text-md font-medium mb-4">Ajouter un document temporaire</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="document-name">Nom du document</Label>
+                          <Input
+                              id="document-name"
+                              placeholder="Ex: Carte d'identité, Diplôme, etc."
+                          />
+                        </div>
 
-                <Button
-                    className="mt-4"
-                    onClick={handlePieceUpload}
-                    disabled={loading || !documentType || !selectedFile || !initialData?.id}
-                >
-                  <FileCheck className="mr-2 h-4 w-4" />
-                  {loading ? "En cours d'upload..." : "Ajouter le document"}
-                </Button>
-              </div>
+                        <div>
+                          <Label htmlFor="document-type">Type de document</Label>
+                          <select
+                              id="document-type"
+                              className="w-full border border-gray-300 rounded-md p-2"
+                          >
+                            <option value="">Sélectionner un type</option>
+                            <option value="ID">Carte d'identité</option>
+                            <option value="DIPLOMA">Diplôme</option>
+                            <option value="CV">CV</option>
+                            <option value="CONTRACT">Contrat</option>
+                            <option value="OTHER">Autre</option>
+                          </select>
+                        </div>
 
-              <div>
-                <h3 className="text-lg font-medium mb-4">Documents du collaborateur</h3>
-                {loading && pieces.length === 0 ? (
-                    <p>Chargement des documents...</p>
-                ) : pieces.length === 0 ? (
-                    <p className="text-gray-500 italic">Aucun document disponible</p>
-                ) : (
-                    <PieceJustificativeList
-                        collaborateurId={initialData?.id || 0}
-                        pieces={pieces}
-                        onUpdate={() => initialData?.id && loadPiecesJustificatives(initialData.id)}
-                        onDelete={handleDeletePiece}
-                    />
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+                        <div>
+                          <Label htmlFor="file-upload">Fichier</Label>
+                          <Input
+                              id="file-upload"
+                              type="file"
+                              onChange={handleFileUpload}
+                          />
+                        </div>
+
+                        <Button
+                            type="button"
+                            onClick={() => {
+                              const nameInput = document.getElementById('document-name') as HTMLInputElement;
+                              const typeInput = document.getElementById('document-type') as HTMLSelectElement;
+                              handleAddTempDocument(nameInput.value, typeInput.value);
+                              if (nameInput) nameInput.value = '';
+                              if (typeInput) typeInput.value = '';
+                            }}
+                        >
+                          Ajouter le document
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h3 className="text-lg font-medium mb-4">Documents temporaires</h3>
+                      {tempDocuments.length === 0 ? (
+                          <p className="text-gray-500">Aucun document ajouté</p>
+                      ) : (
+                          <div className="border rounded-md divide-y">
+                            {tempDocuments.map((doc, index) => (
+                                <div key={index} className="p-3 flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium">{doc.name}</p>
+                                    <p className="text-sm text-gray-500">{doc.file.name} ({doc.type})</p>
+                                  </div>
+                                  <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeletePiece(index)}
+                                  >
+                                    Supprimer
+                                  </Button>
+                                </div>
+                            ))}
+                          </div>
+                      )}
+                      <p className="text-sm text-gray-500 mt-2">
+                        Ces documents seront associés au collaborateur après l&apos;enregistrement.
+                      </p>
+                    </div>
+                  </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end space-x-4">
+            <Button type="button" variant="outline" onClick={() => onSuccess(null)}>
+              Annuler
+            </Button>
+            <Button type="submit">
+              {initialData?.id ? "Mettre à jour" : "Enregistrer"}
+            </Button>
+          </div>
+        </form>
       </div>
   );
 }

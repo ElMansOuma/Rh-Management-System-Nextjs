@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { CollaborateurData } from "./collaborateur-form";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pencil, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,15 +38,19 @@ interface CollaborateursTableProps {
   collaborateurs: CollaborateurData[];
   onEdit: (index: number, updatedCollaborateur: CollaborateurData) => void;
   onDelete: (index: number) => void;
+  onViewDetails?: (collaborateur: CollaborateurData) => void;
 }
 
 export function CollaborateursTable({
                                       collaborateurs = [],
                                       onEdit,
-                                      onDelete
+                                      onDelete,
+                                      onViewDetails
                                     }: CollaborateursTableProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [currentEditIndex, setCurrentEditIndex] = useState<number | null>(null);
+  const [currentCollaborateur, setCurrentCollaborateur] = useState<CollaborateurData | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredCollaborateurs, setFilteredCollaborateurs] = useState<CollaborateurData[]>(collaborateurs);
 
@@ -100,6 +104,20 @@ export function CollaborateursTable({
 
     setCurrentEditIndex(originalIndex);
     setEditDialogOpen(true);
+  };
+
+  const handleViewDetailsClick = (index: number) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const filteredIndex = startIndex + index;
+    const collaborateur = filteredCollaborateurs[filteredIndex];
+
+    setCurrentCollaborateur(collaborateur);
+
+    if (onViewDetails) {
+      onViewDetails(collaborateur);
+    } else {
+      setDetailsDialogOpen(true);
+    }
   };
 
   const handleEditSuccess = (updatedData: CollaborateurData | null) => {
@@ -200,6 +218,10 @@ export function CollaborateursTable({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetailsClick(index)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Détails
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleEditClick(index)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Modifier
@@ -307,6 +329,44 @@ export function CollaborateursTable({
                     onSuccess={handleEditSuccess}
                     initialData={collaborateurs[currentEditIndex]}
                 />
+              </DialogContent>
+            </Dialog>
+        )}
+
+        {currentCollaborateur && (
+            <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Détails du Collaborateur</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                  <div>
+                    <h3 className="font-medium text-gray-500">Informations personnelles</h3>
+                    <div className="mt-2 space-y-2">
+                      <p><span className="font-medium">Nom:</span> {currentCollaborateur.nom}</p>
+                      <p><span className="font-medium">Prénom:</span> {currentCollaborateur.prenom}</p>
+                      <p><span className="font-medium">CIN:</span> {currentCollaborateur.cin}</p>
+                      <p><span className="font-medium">Date de naissance:</span> {formatDate(currentCollaborateur.dateNaissance)}</p>
+                      <p><span className="font-medium">Lieu de naissance:</span> {currentCollaborateur.lieuNaissance}</p>
+                      <p><span className="font-medium">Adresse:</span> {currentCollaborateur.adresseDomicile}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-500">Informations professionnelles</h3>
+                    <div className="mt-2 space-y-2">
+                      <p><span className="font-medium">CNSS:</span> {currentCollaborateur.cnss}</p>
+                      <p><span className="font-medium">Origine:</span> {currentCollaborateur.origine}</p>
+                      <p><span className="font-medium">Niveau d'étude:</span> {currentCollaborateur.niveauEtude}</p>
+                      <p><span className="font-medium">Spécialité:</span> {currentCollaborateur.specialite}</p>
+                      <p><span className="font-medium">Date d'entretien:</span> {formatDate(currentCollaborateur.dateEntretien)}</p>
+                      <p><span className="font-medium">Date d'embauche:</span> {formatDate(currentCollaborateur.dateEmbauche)}</p>
+                    </div>
+                  </div>
+                  <div className="col-span-1 md:col-span-2">
+                    <h3 className="font-medium text-gray-500">Description</h3>
+                    <p className="mt-2">{currentCollaborateur.description || "Aucune description disponible."}</p>
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
         )}
