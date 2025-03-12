@@ -8,6 +8,15 @@ export interface PieceJustificative {
     fichierUrl: string;
 }
 
+// Map pour les types de documents (pour l'affichage)
+export const documentTypeMap: Record<string, string> = {
+    "ID": "Carte d'identité",
+    "DIPLOMA": "Diplôme",
+    "CV": "CV",
+    "CONTRACT": "Contrat",
+    "OTHER": "Autre document"
+};
+
 export interface Collaborateur {
     id?: number;
     nom: string;
@@ -16,6 +25,7 @@ export interface Collaborateur {
     dateNaissance: string;
     lieuNaissance: string;
     adresseDomicile: string;
+    adresse?: string; // Pour compatibilité avec le formulaire
     cnss: string;
     origine: string;
     niveauEtude: string;
@@ -47,12 +57,15 @@ export const collaborateurService = {
     },
 
     create: async (collaborateur: Collaborateur): Promise<Collaborateur> => {
+        // Préparer les données en supprimant les champs temporaires
+        const { tempDocuments, ...collaborateurData } = collaborateur as any;
+
         const response = await fetch(`${API_URL}/api/collaborateurs`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(collaborateur),
+            body: JSON.stringify(collaborateurData),
         });
 
         if (!response.ok) {
@@ -60,23 +73,62 @@ export const collaborateurService = {
             throw new Error(errorData?.message || 'Erreur lors de la création du collaborateur');
         }
 
-        return await response.json();
+        const newCollaborateur = await response.json();
+
+        // Si nous avons des documents temporaires et un ID de collaborateur
+        if (tempDocuments && tempDocuments.length > 0 && newCollaborateur.id) {
+            try {
+                // Pour chaque document temporaire, appeler l'API pour l'uploader
+                for (const doc of tempDocuments) {
+                    await pieceJustificativeService.upload(
+                        newCollaborateur.id,
+                        doc.type,
+                        doc.file
+                    );
+                }
+            } catch (error) {
+                console.error("Erreur lors de l'upload des documents temporaires:", error);
+            }
+        }
+
+        return newCollaborateur;
     },
 
     update: async (id: number, collaborateur: Collaborateur): Promise<Collaborateur> => {
+        // Préparer les données en supprimant les champs temporaires
+        const { tempDocuments, ...collaborateurData } = collaborateur as any;
+
         const response = await fetch(`${API_URL}/api/collaborateurs/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(collaborateur),
+            body: JSON.stringify(collaborateurData),
         });
 
         if (!response.ok) {
             throw new Error('Erreur lors de la mise à jour du collaborateur');
         }
 
-        return await response.json();
+        const updatedCollaborateur = await response.json();
+
+        // Si nous avons des documents temporaires et un ID de collaborateur
+        if (tempDocuments && tempDocuments.length > 0 && id) {
+            try {
+                // Pour chaque document temporaire, appeler l'API pour l'uploader
+                for (const doc of tempDocuments) {
+                    await pieceJustificativeService.upload(
+                        id,
+                        doc.type,
+                        doc.file
+                    );
+                }
+            } catch (error) {
+                console.error("Erreur lors de l'upload des documents temporaires:", error);
+            }
+        }
+
+        return updatedCollaborateur;
     },
 
     delete: async (id: number): Promise<boolean> => {
@@ -114,6 +166,46 @@ export const pieceJustificativeService = {
 
         if (!response.ok) {
             throw new Error('Erreur lors de l\'upload de la pièce justificative');
+        }
+
+        return await response.json();
+    },
+
+    uploadMultiple: async (collaborateurId: number, files: File[], types: string[]): Promise<PieceJustificative[]> => {
+        const formData = new FormData();
+
+        files.forEach((file, index) => {
+            formData.append('files', file);
+        });
+
+        types.forEach((type, index) => {
+            formData.append('types', type);
+        });
+
+        const response = await fetch(`${API_URL}/api/pieces-justificatives/batch/${collaborateurId}`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de l\'upload des pièces justificatives');
+        }
+
+        return await response.json();
+    },
+
+    update: async (id: number, type: string, file: File): Promise<PieceJustificative> => {
+        const formData = new FormData();
+        formData.append('type', type);
+        formData.append('file', file);
+
+        const response = await fetch(`${API_URL}/api/pieces-justificatives/${id}`, {
+            method: 'PUT',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Erreur lors de la mise à jour de la pièce justificative');
         }
 
         return await response.json();
