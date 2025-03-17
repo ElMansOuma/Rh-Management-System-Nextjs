@@ -1,225 +1,105 @@
-"use client";
-
+'use client';
+import './home.css'
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { Users } from "lucide-react";
-import { DatePicker } from "@/components/ui/date-picker";
+import { Card } from "@/components/ui/card";
+import { Users, Calendar, ClipboardCheck, FileText, ArrowRight, Building2 } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
-  // État pour stocker les données du formulaire
-  const [formData, setFormData] = useState({
-    nom: "",
-    prenom: "",
-    cin: "",
-    dateNaissance: null as Date | null, // Utilisation de `Date | null`
-    lieuNaissance: "",
-    adresse: "",
-    cnss: "",
-    origine: "",
-    niveauEtude: "",
-    specialite: "",
-    dateEntretien: null as Date | null, // Utilisation de `Date | null`
-    dateEmbauche: null as Date | null, // Utilisation de `Date | null`
-    description: "",
-  });
-
-  // Gestion de la soumission du formulaire
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Données du formulaire :", formData); // Afficher les données dans la console
-    // Ici vous pouvez ajouter la logique pour sauvegarder les données
-  };
-
   return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto py-8">
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-              <div className="flex items-center space-x-4">
-                <Users className="h-8 w-8 text-blue-600" />
-                <CardTitle className="text-2xl font-bold text-gray-900">
-                  Gestion des Collaborateurs
-                </CardTitle>
+      <div className="min-h-screen">
+        {/* Navigation */}
+        <nav className="fixed w-full bg-gray-800/80 backdrop-blur-sm border-gray-700 border-b z-50">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-6 w-6 text-blue-200" />
+              <span className="font-bold text-xl text-white">RH Pro</span>
+            </div>
+            <div className="flex gap-4">
+              <Link href="/login">
+                <Button variant="ghost" className="text-white hover:text-blue-200">Se connecter</Button>
+              </Link>
+              <Link href="/register">
+                <Button className="bg-blue-200 text-gray-800 hover:bg-blue-300">S'inscrire</Button>
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero Section */}
+        <div className="container mx-auto px-4 pt-32 pb-20">
+          <div className="flex flex-col lg:flex-row items-center gap-12">
+            <div className="flex-1 text-center lg:text-left">
+              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6 text-transparent bg-gradient-to-r from-white to-blue-200 bg-clip-text">
+                Gestion RH Simplifiée
+              </h1>
+              <p className="text-xl text-white/80 max-w-2xl mb-8">
+                Transformez votre gestion des ressources humaines avec notre solution complète et intuitive.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link href="/login">
+                  <Button size="lg" className="w-full sm:w-auto bg-blue-200 text-gray-800 hover:bg-blue-300">
+                    Commencer maintenant
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10">
+                    Créer un compte
+                  </Button>
+                </Link>
               </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Champ Nom */}
-                  <div className="space-y-2">
-                    <Label htmlFor="nom">Nom</Label>
-                    <Input
-                        id="nom"
-                        value={formData.nom}
-                        onChange={(e) =>
-                            setFormData({ ...formData, nom: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
+            </div>
+            <div className="flex-1 relative w-full max-w-xl aspect-square">
+              <Image
+                  src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800"
+                  alt="Espace de travail moderne"
+                  fill
+                  className="object-cover rounded-2xl shadow-2xl opacity-90"
+                  priority
+              />
+            </div>
+          </div>
+        </div>
 
-                  {/* Champ Prénom */}
-                  <div className="space-y-2">
-                    <Label htmlFor="prenom">Prénom</Label>
-                    <Input
-                        id="prenom"
-                        value={formData.prenom}
-                        onChange={(e) =>
-                            setFormData({ ...formData, prenom: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
+        {/* Features Section */}
+        <div className="container mx-auto px-4 py-20 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-700/50 to-transparent" />
+          <h2 className="text-3xl font-bold text-center mb-12 text-white">Fonctionnalités principales</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+            <Card className="p-8 hover:shadow-xl transition-all hover:-translate-y-1 bg-gray-800/50 backdrop-blur-sm border-gray-700">
+              <Users className="h-12 w-12 text-blue-200 mb-6" />
+              <h3 className="text-xl font-semibold mb-3 text-white">Gestion du Personnel</h3>
+              <p className="text-white/70">
+                Centralisez et gérez efficacement toutes les informations de vos employés.
+              </p>
+            </Card>
 
-                  {/* Champ CIN */}
-                  <div className="space-y-2">
-                    <Label htmlFor="cin">CIN</Label>
-                    <Input
-                        id="cin"
-                        value={formData.cin}
-                        onChange={(e) =>
-                            setFormData({ ...formData, cin: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
+            <Card className="p-8 hover:shadow-xl transition-all hover:-translate-y-1 bg-gray-800/50 backdrop-blur-sm border-gray-700">
+              <Calendar className="h-12 w-12 text-blue-200 mb-6" />
+              <h3 className="text-xl font-semibold mb-3 text-white">Gestion des Congés</h3>
+              <p className="text-white/70">
+                Optimisez la gestion des congés avec un système automatisé et transparent.
+              </p>
+            </Card>
 
-                  {/* Champ Date de Naissance */}
-                  <div className="space-y-2">
-                    <Label>Date de Naissance</Label>
-                    <DatePicker
-                        date={formData.dateNaissance}
-                        setDate={(date) =>
-                            setFormData({ ...formData, dateNaissance: date })
-                        }
-                    />
-                  </div>
+            <Card className="p-8 hover:shadow-xl transition-all hover:-translate-y-1 bg-gray-800/50 backdrop-blur-sm border-gray-700">
+              <ClipboardCheck className="h-12 w-12 text-blue-200 mb-6" />
+              <h3 className="text-xl font-semibold mb-3 text-white">Pointage</h3>
+              <p className="text-white/70">
+                Suivez le temps de travail en temps réel avec des outils modernes.
+              </p>
+            </Card>
 
-                  {/* Champ Lieu de Naissance */}
-                  <div className="space-y-2">
-                    <Label htmlFor="lieuNaissance">Lieu de Naissance</Label>
-                    <Input
-                        id="lieuNaissance"
-                        value={formData.lieuNaissance}
-                        onChange={(e) =>
-                            setFormData({ ...formData, lieuNaissance: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
-
-                  {/* Champ Adresse */}
-                  <div className="space-y-2">
-                    <Label htmlFor="adresse">Adresse</Label>
-                    <Input
-                        id="adresse"
-                        value={formData.adresse}
-                        onChange={(e) =>
-                            setFormData({ ...formData, adresse: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
-
-                  {/* Champ CNSS */}
-                  <div className="space-y-2">
-                    <Label htmlFor="cnss">CNSS</Label>
-                    <Input
-                        id="cnss"
-                        value={formData.cnss}
-                        onChange={(e) =>
-                            setFormData({ ...formData, cnss: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
-
-                  {/* Champ Origine */}
-                  <div className="space-y-2">
-                    <Label htmlFor="origine">Origine</Label>
-                    <Input
-                        id="origine"
-                        value={formData.origine}
-                        onChange={(e) =>
-                            setFormData({ ...formData, origine: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
-
-                  {/* Champ Niveau d'Étude */}
-                  <div className="space-y-2">
-                    <Label htmlFor="niveauEtude">Niveau d{"'"}Étude</Label>
-                    <Input
-                        id="niveauEtude"
-                        value={formData.niveauEtude}
-                        onChange={(e) =>
-                            setFormData({ ...formData, niveauEtude: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
-
-                  {/* Champ Spécialité */}
-                  <div className="space-y-2">
-                    <Label htmlFor="specialite">Spécialité</Label>
-                    <Input
-                        id="specialite"
-                        value={formData.specialite}
-                        onChange={(e) =>
-                            setFormData({ ...formData, specialite: e.target.value })
-                        }
-                        required
-                    />
-                  </div>
-
-                  {/* Champ Date d'Entretien */}
-                  <div className="space-y-2">
-                    <Label>Date d{"'"}Entretien</Label>
-                    <DatePicker
-                        date={formData.dateEntretien}
-                        setDate={(date) =>
-                            setFormData({ ...formData, dateEntretien: date })
-                        }
-                    />
-                  </div>
-
-                  {/* Champ Date d'Embauche */}
-                  <div className="space-y-2">
-                    <Label>Date d{"'"}Embauche</Label>
-                    <DatePicker
-                        date={formData.dateEmbauche}
-                        setDate={(date) =>
-                            setFormData({ ...formData, dateEmbauche: date })
-                        }
-                    />
-                  </div>
-                </div>
-
-                {/* Champ Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) =>
-                          setFormData({ ...formData, description: e.target.value })
-                      }
-                      className="h-32"
-                  />
-                </div>
-
-                {/* Bouton de soumission */}
-                <Button type="submit" className="w-full">
-                  Enregistrer le Collaborateur
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+            <Card className="p-8 hover:shadow-xl transition-all hover:-translate-y-1 bg-gray-800/50 backdrop-blur-sm border-gray-700">
+              <FileText className="h-12 w-12 text-blue-200 mb-6" />
+              <h3 className="text-xl font-semibold mb-3 text-white">Gestion des Contrats</h3>
+              <p className="text-white/70">
+                Gérez et suivez tous vos contrats de travail en un seul endroit.
+              </p>
+            </Card>
+          </div>
         </div>
       </div>
   );

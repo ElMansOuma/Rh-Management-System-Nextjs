@@ -1,31 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
+import { Building2 } from "lucide-react";
 
 export function MainNav() {
     const pathname = usePathname();
 
     return (
-        <div className="flex items-center space-x-6 text-sm font-medium">
-            <Link
-                href="/"
-                className={cn(
-                    "transition-colors hover:text-white/90",
-                    pathname === "/" ? "text-white" : "text-white/75"
-                )}
-            >
-
-            </Link>
-            <Link
-                href="/collaborateurs"
-                className={cn(
-                    "transition-colors hover:text-white/90",
-                    pathname === "/collaborateurs" ? "text-white" : "text-white/75"
-                )}
-            >
-            </Link>
+        <div className="flex items-center gap-2 ml-4">
+            <Building2 className="h-7 w-7 text-blue-200" />
+            <span className="font-bold text-xl text-white">RH Pro</span>
         </div>
     );
 }

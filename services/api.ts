@@ -36,12 +36,15 @@ export interface Collaborateur {
     piecesJustificatives?: PieceJustificative[];
 }
 
+// Importer fetchWithAuth du service d'authentification
+import { fetchWithAuth } from './auth';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // Service pour les collaborateurs
 export const collaborateurService = {
     getAll: async (): Promise<Collaborateur[]> => {
-        const response = await fetch(`${API_URL}/api/collaborateurs`);
+        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs`);
         if (!response.ok) {
             throw new Error('Erreur lors de la récupération des collaborateurs');
         }
@@ -49,7 +52,7 @@ export const collaborateurService = {
     },
 
     getById: async (id: number): Promise<Collaborateur> => {
-        const response = await fetch(`${API_URL}/api/collaborateurs/${id}`);
+        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`);
         if (!response.ok) {
             throw new Error('Collaborateur non trouvé');
         }
@@ -60,7 +63,7 @@ export const collaborateurService = {
         // Préparer les données en supprimant les champs temporaires
         const { tempDocuments, ...collaborateurData } = collaborateur as any;
 
-        const response = await fetch(`${API_URL}/api/collaborateurs`, {
+        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -98,7 +101,7 @@ export const collaborateurService = {
         // Préparer les données en supprimant les champs temporaires
         const { tempDocuments, ...collaborateurData } = collaborateur as any;
 
-        const response = await fetch(`${API_URL}/api/collaborateurs/${id}`, {
+        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -132,7 +135,7 @@ export const collaborateurService = {
     },
 
     delete: async (id: number): Promise<boolean> => {
-        const response = await fetch(`${API_URL}/api/collaborateurs/${id}`, {
+        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`, {
             method: 'DELETE',
         });
 
@@ -147,7 +150,7 @@ export const collaborateurService = {
 // Service pour les pièces justificatives
 export const pieceJustificativeService = {
     getAllByCollaborateur: async (collaborateurId: number): Promise<PieceJustificative[]> => {
-        const response = await fetch(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`);
+        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`);
         if (!response.ok) {
             throw new Error('Erreur lors de la récupération des pièces justificatives');
         }
@@ -159,8 +162,12 @@ export const pieceJustificativeService = {
         formData.append('type', type);
         formData.append('file', file);
 
-        const response = await fetch(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`, {
+        // Pour FormData, ne pas spécifier Content-Type car il sera automatiquement défini
+        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`, {
             method: 'POST',
+            headers: {
+                // Supprimez le Content-Type pour permettre au navigateur de définir le boundary correct
+            },
             body: formData,
         });
 
@@ -182,8 +189,11 @@ export const pieceJustificativeService = {
             formData.append('types', type);
         });
 
-        const response = await fetch(`${API_URL}/api/pieces-justificatives/batch/${collaborateurId}`, {
+        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/batch/${collaborateurId}`, {
             method: 'POST',
+            headers: {
+                // Supprimez le Content-Type pour permettre au navigateur de définir le boundary correct
+            },
             body: formData,
         });
 
@@ -199,8 +209,11 @@ export const pieceJustificativeService = {
         formData.append('type', type);
         formData.append('file', file);
 
-        const response = await fetch(`${API_URL}/api/pieces-justificatives/${id}`, {
+        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/${id}`, {
             method: 'PUT',
+            headers: {
+                // Supprimez le Content-Type pour permettre au navigateur de définir le boundary correct
+            },
             body: formData,
         });
 
@@ -212,7 +225,7 @@ export const pieceJustificativeService = {
     },
 
     delete: async (id: number): Promise<boolean> => {
-        const response = await fetch(`${API_URL}/api/pieces-justificatives/${id}`, {
+        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/${id}`, {
             method: 'DELETE',
         });
 

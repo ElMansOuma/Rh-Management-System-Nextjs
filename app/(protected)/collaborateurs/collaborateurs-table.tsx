@@ -9,9 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CollaborateurData } from "./collaborateur-form";
+import { CollaborateurData } from "@/app/(protected)/collaborateurs/collaborateur-form";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Pencil, Trash2, MoreHorizontal, Search, ChevronLeft, ChevronRight, Eye, Filter, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CollaborateurForm } from "./collaborateur-form";
+import { CollaborateurForm } from "@/app/(protected)/collaborateurs/collaborateur-form";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -33,12 +33,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface CollaborateursTableProps {
   collaborateurs: CollaborateurData[];
   onEdit: (index: number, updatedCollaborateur: CollaborateurData) => void;
   onDelete: (index: number) => void;
   onViewDetails?: (collaborateur: CollaborateurData) => void;
+}
+
+// Type d'interface pour les filtres
+interface FilterOptions {
+  field: string;
+  value: string;
 }
 
 export function CollaborateursTable({
@@ -54,24 +70,55 @@ export function CollaborateursTable({
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredCollaborateurs, setFilteredCollaborateurs] = useState<CollaborateurData[]>(collaborateurs);
 
+  // État pour les filtres
+  const [filters, setFilters] = useState<FilterOptions[]>([]);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [selectedField, setSelectedField] = useState("tous");
+  const [specialites, setSpecialites] = useState<string[]>([]);
+
   // États pour la pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalPages, setTotalPages] = useState(1);
   const [paginatedCollaborateurs, setPaginatedCollaborateurs] = useState<CollaborateurData[]>([]);
 
-  // Filtrer les collaborateurs basé sur le terme de recherche
+  // Extraire les spécialités uniques pour les filtres
   useEffect(() => {
-    const filtered = collaborateurs.filter(collaborateur =>
-        collaborateur.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        collaborateur.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        collaborateur.cin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        collaborateur.cnss.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        collaborateur.specialite.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const uniqueSpecialites = Array.from(new Set(collaborateurs.map(c => c.specialite || "")));
+    setSpecialites(uniqueSpecialites);
+  }, [collaborateurs]);
+
+  // Filtrer les collaborateurs base sur le terme de recherche et les filtres
+  useEffect(() => {
+    let filtered = [...collaborateurs];
+
+    // Appliquer les filtres spécifiques
+    if (filters.length > 0) {
+      filtered = filtered.filter(collaborateur => {
+        return filters.every(filter => {
+          const value = collaborateur[filter.field as keyof CollaborateurData];
+          if (typeof value === 'string') {
+            return value.toLowerCase().includes(filter.value.toLowerCase());
+          }
+          return false;
+        });
+      });
+    }
+
+    // Appliquer le terme de recherche global si présent
+    if (searchTerm) {
+      filtered = filtered.filter(collaborateur =>
+          (collaborateur.nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (collaborateur.prenom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (collaborateur.cin || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (collaborateur.cnss || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (collaborateur.specialite || "").toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
     setFilteredCollaborateurs(filtered);
     setCurrentPage(1); // Réinitialiser à la première page lors d'une nouvelle recherche
-  }, [searchTerm, collaborateurs]);
+  }, [searchTerm, collaborateurs, filters]);
 
   // Calculer la pagination
   useEffect(() => {
@@ -83,7 +130,7 @@ export function CollaborateursTable({
     setPaginatedCollaborateurs(filteredCollaborateurs.slice(start, end));
   }, [filteredCollaborateurs, currentPage, itemsPerPage]);
 
-  function formatDate(dateString: string): string {
+  function formatDate(dateString: string | null | undefined): string {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString();
@@ -144,6 +191,39 @@ export function CollaborateursTable({
     onDelete(originalIndex);
   };
 
+  const addFilter = (field: string, value: string) => {
+    if (!value.trim()) return;
+
+    // Si le champ est "tous", ne pas ajouter de filtre spécifique
+    if (field === "tous") return;
+
+    // Vérifier si un filtre avec ce champ existe déjà
+    const existingFilterIndex = filters.findIndex(f => f.field === field);
+
+    if (existingFilterIndex >= 0) {
+      // Mettre à jour le filtre existant
+      const updatedFilters = [...filters];
+      updatedFilters[existingFilterIndex] = { field, value };
+      setFilters(updatedFilters);
+    } else {
+      // Ajouter un nouveau filtre
+      setFilters([...filters, { field, value }]);
+    }
+
+    setFilterDialogOpen(false);
+  };
+
+  const removeFilter = (index: number) => {
+    const newFilters = [...filters];
+    newFilters.splice(index, 1);
+    setFilters(newFilters);
+  };
+
+  const clearAllFilters = () => {
+    setFilters([]);
+    setSearchTerm("");
+  };
+
   const nextPage = () => {
     setCurrentPage(prev => Math.min(prev + 1, totalPages));
   };
@@ -156,28 +236,137 @@ export function CollaborateursTable({
     setCurrentPage(page);
   };
 
+  // Fonction pour obtenir le libellé du champ de filtre
+  const getFieldLabel = (field: string) => {
+    const fieldMap: Record<string, string> = {
+      "nom": "Nom",
+      "prenom": "Prénom",
+      "cin": "CIN",
+      "cnss": "CNSS",
+      "specialite": "Spécialité",
+      "dateEmbauche": "Date d&apos;embauche"
+    };
+    return fieldMap[field] || field;
+  };
+
   return (
       <>
         <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2">
           <div className="relative flex items-center w-full max-w-md">
             <Search className="absolute left-2 h-4 w-4 text-gray-400" />
             <Input
-                placeholder="Rechercher un collaborateur..."
+                placeholder="Recherche globale..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
             />
           </div>
-          {searchTerm && (
+
+          <Popover open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filtres
+                {filters.length > 0 && (
+                    <Badge variant="secondary" className="ml-1">{filters.length}</Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <h3 className="font-medium text-sm">Ajouter un filtre</h3>
+
+                <div className="space-y-2">
+                  <Select
+                      value={selectedField}
+                      onValueChange={setSelectedField}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir un champ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nom">Nom</SelectItem>
+                      <SelectItem value="prenom">Prénom</SelectItem>
+                      <SelectItem value="cin">CIN</SelectItem>
+                      <SelectItem value="cnss">CNSS</SelectItem>
+                      <SelectItem value="specialite">Spécialité</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {selectedField === "specialite" ? (
+                      <Select
+                          onValueChange={(value) => addFilter("specialite", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choisir une spécialité" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {specialites.map((specialite, index) => (
+                              <SelectItem key={index} value={specialite}>
+                                {specialite}
+                              </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                  ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                            placeholder={`Valeur pour ${getFieldLabel(selectedField)}`}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                addFilter(selectedField, e.currentTarget.value);
+                                e.currentTarget.value = '';
+                              }
+                            }}
+                        />
+                        <Button
+                            size="sm"
+                            onClick={(e) => {
+                              const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                              addFilter(selectedField, input.value);
+                              input.value = '';
+                            }}
+                        >
+                          Ajouter
+                        </Button>
+                      </div>
+                  )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {(searchTerm || filters.length > 0) && (
               <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSearchTerm("")}
+                  onClick={clearAllFilters}
+                  className="gap-1"
               >
-                Effacer
+                <X className="h-4 w-4" />
+                Tout effacer
               </Button>
           )}
         </div>
+
+        {/* Affichage des filtres actifs */}
+        {filters.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {filters.map((filter, index) => (
+                  <Badge key={index} variant="outline" className="flex items-center gap-1 pl-2">
+                    {getFieldLabel(filter.field)}: {filter.value}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 ml-1 hover:bg-transparent"
+                        onClick={() => removeFilter(index)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+              ))}
+            </div>
+        )}
 
         <div className="rounded-md border">
           <Table>
@@ -196,7 +385,7 @@ export function CollaborateursTable({
               {paginatedCollaborateurs.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-6">
-                      {searchTerm
+                      {searchTerm || filters.length > 0
                           ? "Aucun collaborateur ne correspond à votre recherche"
                           : "Aucun collaborateur"}
                     </TableCell>
@@ -356,10 +545,10 @@ export function CollaborateursTable({
                     <div className="mt-2 space-y-2">
                       <p><span className="font-medium">CNSS:</span> {currentCollaborateur.cnss}</p>
                       <p><span className="font-medium">Origine:</span> {currentCollaborateur.origine}</p>
-                      <p><span className="font-medium">Niveau d'étude:</span> {currentCollaborateur.niveauEtude}</p>
+                      <p><span className="font-medium">Niveau d&apos;étude:</span> {currentCollaborateur.niveauEtude}</p>
                       <p><span className="font-medium">Spécialité:</span> {currentCollaborateur.specialite}</p>
-                      <p><span className="font-medium">Date d'entretien:</span> {formatDate(currentCollaborateur.dateEntretien)}</p>
-                      <p><span className="font-medium">Date d'embauche:</span> {formatDate(currentCollaborateur.dateEmbauche)}</p>
+                      <p><span className="font-medium">Date d&apos;entretien:</span> {formatDate(currentCollaborateur.dateEntretien)}</p>
+                      <p><span className="font-medium">Date d&apos;embauche:</span> {formatDate(currentCollaborateur.dateEmbauche)}</p>
                     </div>
                   </div>
                   <div className="col-span-1 md:col-span-2">

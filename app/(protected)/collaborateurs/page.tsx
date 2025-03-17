@@ -1,9 +1,10 @@
 // C:\Users\DELL\Downloads\managerhr\project\app\collaborateurs\page.tsx
 "use client";
+import '../../globals.css'
 
 import { useState, useEffect } from "react";
-import { CollaborateursTable } from "@/components/collaborateurs-table";
-import { CollaborateurForm, CollaborateurData } from "@/components/collaborateur-form";
+import { CollaborateursTable } from "@/app/(protected)/collaborateurs/collaborateurs-table";
+import { CollaborateurForm, CollaborateurData } from "@/app/(protected)/collaborateurs/collaborateur-form";
 import { Button } from "@/components/ui/button";
 import { Collaborateur, collaborateurService } from "@/services/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
