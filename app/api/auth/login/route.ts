@@ -1,4 +1,4 @@
-// app/api/auth/login/route.ts
+// des routes d'API pour gérer les requêtes login
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -12,6 +12,7 @@ export async function POST(request: Request) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            // Cette méthode prend l'objet body et le transforme en une chaîne de caractères au format JSON.
             body: JSON.stringify(body),
         });
 

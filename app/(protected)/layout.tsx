@@ -1,13 +1,35 @@
 // app/(protected)/layout.tsx
-import { MainNav } from '@/components/main-nav';
-import { UserNav } from '@/components/user-nav';
-import { Sidebar } from '@/components/sidebar';
+"use client";
+
+import '../globals.css'
+
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { isAuthenticated } from '@/services/auth';
+import { MainNav } from '@/app/(protected)/main-nav';
+import { UserNav } from '@/app/(protected)/user-nav';
+import { Sidebar } from '@/app/(protected)/sidebar';
 
 export default function ProtectedLayout({
                                             children,
                                         }: {
     children: React.ReactNode;
 }) {
+    const router = useRouter();
+
+    useEffect(() => {
+        // Vérifier l'authentification côté client
+        if (!isAuthenticated()) {
+            router.push('/login');
+        }
+    }, [router]);
+
+    // Afficher un état de chargement pendant la vérification d'authentification
+    if (typeof window !== 'undefined' && !isAuthenticated()) {
+        return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    }
+
     return (
         <div className="gradient-bg min-h-screen">
             <div className="navbar sticky top-0 z-50">

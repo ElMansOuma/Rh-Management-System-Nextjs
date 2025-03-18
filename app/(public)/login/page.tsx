@@ -1,4 +1,3 @@
-// app/(public)/login/page.tsx
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -117,7 +116,7 @@ export default function Login() {
 
                     <Link href="/" className="text-sm text-white/70 hover:text-blue-200 inline-flex items-center">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Retour à l'accueil
+                        Retour à l&apos;accueil
                     </Link>
                 </div>
             </Card>

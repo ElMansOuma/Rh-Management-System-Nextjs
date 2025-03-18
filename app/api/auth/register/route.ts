@@ -1,4 +1,4 @@
-// app/api/auth/register/route.ts
+// des routes d'API pour gérer les requêtes signup
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -12,8 +12,10 @@ export async function POST(request: Request) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            // Cette méthode prend l'objet body et le transforme en une chaîne de caractères au format JSON.
             body: JSON.stringify(body),
         });
+        //Gestion de la réponse du serveur
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             return NextResponse.json(

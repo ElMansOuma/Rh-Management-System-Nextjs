@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { LogIn, UserPlus, User, Settings, LogOut } from 'lucide-react';
 import { useRouter } from "next/navigation";
+import { logout } from "@/services/auth"; // Importez la fonction logout
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,12 +26,9 @@ export function UserNav() {
     const router = useRouter();
 
     const handleLogout = () => {
-        // Ici vous pourriez ajouter la logique de déconnexion
-        // Par exemple, effacer les tokens d'authentification
-        // localStorage.removeItem("token");
-
-        // Redirection vers la page d'accueil
-        router.push("/");
+        // Utiliser la fonction logout du service d'authentification
+        logout();
+        // Pas besoin de router.push car logout() fait déjà la redirection
     };
 
     return (

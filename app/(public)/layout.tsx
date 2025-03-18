@@ -1,4 +1,3 @@
-// app/(public)/layout.tsx
 import '../home.css'
 
 export default function PublicLayout({
