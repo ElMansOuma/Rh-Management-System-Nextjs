@@ -33,16 +33,13 @@ export function PieceJustificativeForm({ collaborateurId, onSuccess }: PieceJust
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError("");
 
         const file = fileInputRef.current?.files?.[0];
 
         // Validation
         if (!collaborateurId) {
-            toast({
-                title: "Information",
-                description: "Veuillez d'abord enregistrer les informations du collaborateur.",
-                variant: "default",
-            });
+            setError("ID du collaborateur manquant");
             return;
         }
 
@@ -52,13 +49,20 @@ export function PieceJustificativeForm({ collaborateurId, onSuccess }: PieceJust
         }
 
         if (!documentType) {
-            setError("Veuillez sélectionner un type de document");
+            setError("Veuillez sélectionner un type de documents");
             return;
         }
 
         try {
             setLoading(true);
+            console.log("Uploading documents:", {
+                collaborateurId,
+                documentType,
+                fileName: file.name
+            });
+
             await pieceJustificativeService.upload(collaborateurId, documentType, file);
+
             toast({
                 title: "Succès",
                 description: "Document ajouté avec succès",
@@ -71,12 +75,16 @@ export function PieceJustificativeForm({ collaborateurId, onSuccess }: PieceJust
                 fileInputRef.current.value = "";
             }
 
-            onSuccess();
+            // Call onSuccess callback to reload documents
+            if (typeof onSuccess === 'function') {
+                onSuccess();
+            }
         } catch (err) {
-            console.error("Error uploading document:", err);
+            console.error("Error uploading documents:", err);
+            setError("Impossible d'ajouter le documents. Veuillez réessayer.");
             toast({
                 title: "Erreur",
-                description: "Impossible d'ajouter le document",
+                description: "Impossible d'ajouter le documents",
                 variant: "destructive",
             });
         } finally {
@@ -106,7 +114,6 @@ export function PieceJustificativeForm({ collaborateurId, onSuccess }: PieceJust
                                 className="w-full border border-gray-300 rounded-md p-2"
                                 value={documentType}
                                 onChange={handleDocumentTypeChange}
-                                required
                             >
                                 <option value="">Sélectionner un type</option>
                                 {Object.entries(documentTypeMap).map(([value, label]) => (
@@ -124,7 +131,6 @@ export function PieceJustificativeForm({ collaborateurId, onSuccess }: PieceJust
                                 type="file"
                                 ref={fileInputRef}
                                 onChange={handleFileChange}
-                                required
                             />
                         </div>
                     </div>
@@ -133,9 +139,15 @@ export function PieceJustificativeForm({ collaborateurId, onSuccess }: PieceJust
                         type="submit"
                         disabled={loading}
                         className="w-full"
+                        onClick={(e) => {
+                            // Ce click handler est un backup au cas où le form onSubmit ne se déclenche pas
+                            if (!loading) {
+                                handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+                            }
+                        }}
                     >
                         <FileUp className="mr-2 h-4 w-4" />
-                        {loading ? "En cours d'upload..." : "Ajouter le document"}
+                        {loading ? "En cours d'upload..." : "Ajouter le documents"}
                     </Button>
                 </form>
             </CardContent>

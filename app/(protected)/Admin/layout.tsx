@@ -1,15 +1,15 @@
 // app/(protected)/layout.tsx
 "use client";
 
-import '../globals.css'
+import '../../globals.css'
 
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/services/auth';
-import { MainNav } from '@/app/(protected)/main-nav';
-import { UserNav } from '@/app/(protected)/user-nav';
-import { Sidebar } from '@/app/(protected)/sidebar';
+import { MainNav } from '@/app/(protected)/Admin/main-nav';
+import { UserNav } from '@/app/(protected)/Admin/user-nav';
+import { Sidebar } from '@/app/(protected)/Admin/sidebar';
 
 export default function ProtectedLayout({
                                             children,

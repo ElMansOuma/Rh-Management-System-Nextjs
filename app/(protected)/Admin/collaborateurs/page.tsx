@@ -1,20 +1,20 @@
-// C:\Users\DELL\Downloads\managerhr\project\app\collaborateurs\page.tsx
 "use client";
-import '../../globals.css'
+import '../../../globals.css'
 
 import { useState, useEffect } from "react";
-import { CollaborateursTable } from "@/app/(protected)/collaborateurs/collaborateurs-table";
-import { CollaborateurForm, CollaborateurData } from "@/app/(protected)/collaborateurs/collaborateur-form";
+import { CollaborateursTable } from "@/app/(protected)/Admin/collaborateurs/collaborateurs-table";
+import { CollaborateurData } from "@/app/(protected)/Admin/collaborateurs/collaborateur-form";
 import { Button } from "@/components/ui/button";
 import { Collaborateur, collaborateurService } from "@/services/api";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {toast} from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
+import { PlusIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function CollaborateursPage() {
+    const router = useRouter();
     const [collaborateurs, setCollaborateurs] = useState<Collaborateur[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [addDialogOpen, setAddDialogOpen] = useState<boolean>(false);
 
     // Charger les collaborateurs au chargement de la page
     useEffect(() => {
@@ -39,25 +39,27 @@ export default function CollaborateursPage() {
     // Fonction pour convertir CollaborateurData en Collaborateur
     const convertFormDataToAPI = (formData: CollaborateurData): Collaborateur => {
         return {
-            nom: formData.nom,
-            prenom: formData.prenom,
-            cin: formData.cin,
-            dateNaissance: formData.dateNaissance,
-            lieuNaissance: formData.lieuNaissance,
-            adresseDomicile: formData.adresse, // Conversion du nom de champ
-            cnss: formData.cnss,
-            origine: formData.origine,
-            niveauEtude: formData.niveauEtude,
-            specialite: formData.specialite,
-            dateEntretien: formData.dateEntretien,
-            dateEmbauche: formData.dateEmbauche,
-            description: formData.description
+            nom: formData.nom ?? "",
+            prenom: formData.prenom ?? "",
+            cin: formData.cin ?? "",
+            dateNaissance: formData.dateNaissance ?? "",
+            lieuNaissance: formData.lieuNaissance ?? "",
+            adresseDomicile: formData.adresse ?? "", // Conversion du nom de champ
+            cnss: formData.cnss ?? "",
+            origine: formData.origine ?? "",
+            niveauEtude: formData.niveauEtude ?? "",
+            specialite: formData.specialite ?? "",
+            dateEntretien: formData.dateEntretien ?? "",
+            dateEmbauche: formData.dateEmbauche ?? "",
+            description: formData.description ?? ""
         };
     };
+
 
     // Fonction pour convertir Collaborateur en CollaborateurData
     const convertAPIToFormData = (collaborateur: Collaborateur): CollaborateurData => {
         return {
+            id: collaborateur.id,
             nom: collaborateur.nom,
             prenom: collaborateur.prenom,
             cin: collaborateur.cin,
@@ -74,33 +76,7 @@ export default function CollaborateursPage() {
         };
     };
 
-    // Ajouter un collaborateur
-    const handleAddCollaborateur = async (formData: CollaborateurData | null) => {
-        if (!formData) {
-            setAddDialogOpen(false);
-            return;
-        }
-
-        try {
-            const collaborateurData = convertFormDataToAPI(formData);
-            await collaborateurService.create(collaborateurData);
-            await fetchCollaborateurs(); // Recharger la liste après ajout
-            setAddDialogOpen(false);
-            toast({
-                title: "Collaborateur ajouté",
-                description: "Le collaborateur a été ajouté avec succès.",
-            });
-        } catch (err) {
-            console.error("Erreur lors de l'ajout du collaborateur:", err);
-            toast({
-                title: "Erreur",
-                description: "Impossible d'ajouter le collaborateur. Veuillez réessayer.",
-                variant: "destructive",
-            });
-        }
-    };
-
-    // Modifier un collaborateur
+    // Modifier un collaborateur - conservé comme dans votre code original
     const handleEditCollaborateur = async (index: number, formData: CollaborateurData) => {
         const collaborateur = collaborateurs[index];
 
@@ -126,6 +102,7 @@ export default function CollaborateursPage() {
             });
         }
     };
+
 
     // Supprimer un collaborateur
     const handleDeleteCollaborateur = async (index: number) => {
@@ -157,14 +134,28 @@ export default function CollaborateursPage() {
         }
     };
 
+
+    // Rediriger vers la page d'ajout
+    const handleAddCollaborateur = () => {
+        router.push("/Admin/collaborateurs/add");
+    };
+
     if (loading) return <div className="flex justify-center p-6">Chargement...</div>;
     if (error) return <div className="text-red-500 p-6">{error}</div>;
 
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Gestion des Collaborateurs</h1>
-                <Button onClick={() => setAddDialogOpen(true)}>Ajouter un collaborateur</Button>
+                <h1 className="text-3xl font-extrabold text-gray-800">
+                    Gestion des Collaborateurs
+                </h1>
+                <Button
+                    onClick={handleAddCollaborateur}
+                    className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-semibold py-2 px-5 rounded-lg shadow-md flex items-center transition-all duration-300"
+                >
+                    <PlusIcon className="w-5 h-5 mr-2 stroke-white" />
+                    Ajouter un collaborateur
+                </Button>
             </div>
 
             <CollaborateursTable
@@ -172,15 +163,6 @@ export default function CollaborateursPage() {
                 onEdit={handleEditCollaborateur}
                 onDelete={handleDeleteCollaborateur}
             />
-
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Ajouter un nouveau collaborateur</DialogTitle>
-                    </DialogHeader>
-                    <CollaborateurForm onSuccess={handleAddCollaborateur} />
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

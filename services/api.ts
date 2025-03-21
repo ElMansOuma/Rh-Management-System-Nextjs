@@ -14,7 +14,7 @@ export const documentTypeMap: Record<string, string> = {
     "DIPLOMA": "Diplôme",
     "CV": "CV",
     "CONTRACT": "Contrat",
-    "OTHER": "Autre document"
+    "OTHER": "Autre documents"
 };
 
 export interface Collaborateur {
@@ -81,7 +81,7 @@ export const collaborateurService = {
         // Si nous avons des documents temporaires et un ID de collaborateur
         if (tempDocuments && tempDocuments.length > 0 && newCollaborateur.id) {
             try {
-                // Pour chaque document temporaire, appeler l'API pour l'uploader
+                // Pour chaque documents temporaire, appeler l'API pour l'uploader
                 for (const doc of tempDocuments) {
                     await pieceJustificativeService.upload(
                         newCollaborateur.id,
@@ -118,7 +118,7 @@ export const collaborateurService = {
         // Si nous avons des documents temporaires et un ID de collaborateur
         if (tempDocuments && tempDocuments.length > 0 && id) {
             try {
-                // Pour chaque document temporaire, appeler l'API pour l'uploader
+                // Pour chaque documents temporaire, appeler l'API pour l'uploader
                 for (const doc of tempDocuments) {
                     await pieceJustificativeService.upload(
                         id,

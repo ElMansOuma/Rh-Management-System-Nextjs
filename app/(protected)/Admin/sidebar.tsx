@@ -14,27 +14,27 @@ import {
 const sidebarItems = [
   {
     title: "Tableau de bord",
-    href: "/dashboard",
+    href: "/Admin/dashboard",
     icon: LayoutDashboard
   },
   {
     title: "Collaborateurs",
-    href: "/collaborateurs",
+    href: "/Admin/collaborateurs",
     icon: Users
   },
   {
     title: "Pointage",
-    href: "/pointage",
+    href: "/Admin/pointage",
     icon: Clock
   },
   {
     title: "Congés",
-    href: "/conges",
+    href: "/Admin/conges",
     icon: Calendar
   },
   {
     title: "Contrats",
-    href: "/contrats",
+    href: "/Admin/contrats",
     icon: FileText
   }
 ];

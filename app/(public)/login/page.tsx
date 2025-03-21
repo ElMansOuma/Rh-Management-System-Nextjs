@@ -45,7 +45,7 @@ export default function Login() {
             }));
 
             // Redirection vers le tableau de bord
-            router.push('/dashboard');
+            router.push('/Admin/salarie/profil');
         } catch (err) {
             console.error('Login error:', err);
             setError(err instanceof Error ? err.message : 'Erreur de connexion');
@@ -108,9 +108,9 @@ export default function Login() {
 
                 <div className="mt-6 text-center space-y-4">
                     <p className="text-sm text-white/70">
-                        Vous n'avez pas de compte ?{' '}
+                        Vous n&apos;avez pas de compte ?{' '}
                         <Link href="/register" className="text-blue-200 hover:underline">
-                            S'inscrire
+                            S&apos;inscrire
                         </Link>
                     </p>
 

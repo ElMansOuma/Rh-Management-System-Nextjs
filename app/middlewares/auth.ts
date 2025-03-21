@@ -10,7 +10,7 @@
         // Vérifier si l'utilisateur tente d'accéder à une route protégée
         const isProtectedRoute = request.nextUrl.pathname.startsWith('/(protected)') ||
             request.nextUrl.pathname.includes('/dashboard') ||
-            request.nextUrl.pathname.includes('/profile') ||
+            request.nextUrl.pathname.includes('/profil') ||
             request.nextUrl.pathname.includes('/collaborateurs') ||
             request.nextUrl.pathname.includes('/conges') ||
             request.nextUrl.pathname.includes('/contrats') ||
