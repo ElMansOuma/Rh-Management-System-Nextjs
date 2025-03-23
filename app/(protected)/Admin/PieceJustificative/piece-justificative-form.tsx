@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { FileUpload } from "../PieceJustificative/FileUpload";
+import { fetchWithAuth } from "../../../../services/auth"; // Import fetchWithAuth to ensure proper authentication
 
 interface PieceJustificativeData {
     id?: number;
@@ -44,6 +45,9 @@ export function PieceJustificativeForm({
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [fileError, setFileError] = useState<string | null>(null);
+
+    // API URL from environment or default
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
     useEffect(() => {
         if (initialData) {
@@ -87,39 +91,52 @@ export function PieceJustificativeForm({
 
             const apiFormData = new FormData();
 
-            // Create a blob with the pieceJustificative JSON data
-            const pieceJustificativeBlob = new Blob(
-                [JSON.stringify(formData)],
-                { type: 'application/json' }
-            );
+            // Add direct fields to FormData instead of using a JSON blob
+            apiFormData.append('nom', formData.nom);
+            apiFormData.append('type', formData.type);
+            apiFormData.append('description', formData.description);
+            apiFormData.append('collaborateurId', collaborateurId.toString());
+            apiFormData.append('statut', formData.statut || "EN_ATTENTE");
 
-            // Add the pieceJustificative data as a blob
-            apiFormData.append('pieceJustificative', pieceJustificativeBlob);
+            // Add ID if it's an update
+            if (initialData?.id) {
+                apiFormData.append('id', initialData.id.toString());
+            }
 
-            // Add file if exists
+            // Add the file if it exists
             if (file) {
                 apiFormData.append('file', file);
             }
 
             // Determine if this is a create or update operation
             const isUpdate = !!initialData?.id;
-            const url = isUpdate
-                ? `/api/upload/pieces-justificatives/${initialData.id}`
-                : '/api/upload/pieces-justificatives';
 
-            console.log(`Submitting to ${url}`, {
+            // Use the direct backend API URL instead of API routes
+            const url = isUpdate
+                ? `${API_URL}/api/pieces-justificatives/${initialData.id}`
+                : `${API_URL}/api/pieces-justificatives`;
+
+            console.log(`Envoi à ${url}`, {
                 isUpdate,
                 formDataKeys: Array.from(apiFormData.keys())
             });
 
-            const response = await fetch(url, {
+            // Use fetchWithAuth to ensure the token is included
+            const response = await fetchWithAuth(url, {
                 method: isUpdate ? 'PUT' : 'POST',
                 body: apiFormData,
+                // Don't set Content-Type header for FormData, browser sets it automatically with boundary
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Erreur ${response.status}`);
+                let errorMessage;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || `Erreur ${response.status}: ${response.statusText}`;
+                } catch (e) {
+                    errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
             }
 
             toast({

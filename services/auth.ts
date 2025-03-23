@@ -1,52 +1,72 @@
-import Cookies from 'js-cookie';
-//pour stocker et récupérer le token d'authentification dans les cookies du navigateur
+"use client";
 
+import Cookies from 'js-cookie';
+
+// Interface définissant la structure d'un utilisateur
 export interface User {
     name: string;
     email: string;
     role: string;
 }
 
-// définir le token dans localStorage et dans un cookie
+/**
+ * Stocke le token d'authentification à la fois dans localStorage et dans un cookie
+ * @param token - Le token JWT à stocker
+ */
 export const setToken = (token: string): void => {
-    if (typeof window !== 'undefined') { // Vérifie si le code s'exécute côté client (navigateur)
-        localStorage.setItem('token', token); // Sauvegarde le token dans localStorage
-        Cookies.set('token', token, { expires: 7 }); // Sauvegarde le token dans un cookie, expire après 7 jours
+    if (typeof window !== 'undefined') { // Vérifie si le code s'exécute côté client
+        localStorage.setItem('token', token);
+        Cookies.set('token', token, { expires: 7 }); // Cookie expirant après 7 jours
     }
 };
 
-//  définir l'utilisateur dans localStorage
+/**
+ * Stocke les informations utilisateur dans localStorage
+ * @param user - L'objet utilisateur à stocker
+ */
 export const setUser = (user: User): void => {
     if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(user)); // Sauvegarde l'objet utilisateur sous forme de chaîne JSON dans localStorage
+        localStorage.setItem('user', JSON.stringify(user));
     }
 };
 
-// récupérer le token depuis localStorage
+/**
+ * Récupère le token d'authentification depuis localStorage
+ * @returns Le token stocké ou null si absent
+ */
 export const getToken = (): string | null => {
     if (typeof window !== 'undefined') {
-        return localStorage.getItem('token'); // Retourne le token stocké dans localStorage, ou null si absent
+        return localStorage.getItem('token');
     }
     return null;
 };
 
-// récupérer l'utilisateur depuis localStorage
+/**
+ * Récupère les informations utilisateur depuis localStorage
+ * @returns L'objet utilisateur ou null si absent
+ */
 export const getUser = (): User | null => {
     if (typeof window !== 'undefined') {
-        const userStr = localStorage.getItem('user'); // Récupère la chaîne JSON de l'utilisateur dans localStorage
+        const userStr = localStorage.getItem('user');
         if (userStr) {
-            return JSON.parse(userStr); // Parse la chaîne JSON en un objet JavaScript
+            return JSON.parse(userStr);
         }
     }
     return null;
 };
 
-//vérifier si l'utilisateur est authentifié (token présent dans localStorage)
+/**
+ * Vérifie si l'utilisateur est authentifié
+ * @returns true si un token est présent, false sinon
+ */
 export const isAuthenticated = (): boolean => {
     return getToken() !== null;
 };
 
-//déconnecter l'utilisateur
+/**
+ * Déconnecte l'utilisateur en supprimant toutes les données d'authentification
+ * et redirige vers la page de connexion
+ */
 export const logout = (): void => {
     if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
@@ -56,25 +76,45 @@ export const logout = (): void => {
     }
 };
 
-// effectuer une requête avec un en-tête d'authentification (Bearer token)
-export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const token = getToken(); // Récupère le token de localStorage
+/**
+ * Effectue une requête HTTP avec le token d'authentification
+ * @param url - L'URL de la requête
+ * @param options - Les options de la requête fetch
+ * @returns La réponse de la requête
+ * @throws Error si la session a expiré (code 401)
+ */
+export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const token = getToken();
 
-    const headers = {
-        ...options.headers, // Conserve les autres en-têtes éventuellement passés dans options
-        'Authorization': token ? `Bearer ${token}` : '', // Ajoute un en-tête d'authentification si le token existe
-        'Content-Type': 'application/json', // Définit le type de contenu de la requête en JSON
-    };
+    // Création d'un nouvel objet Headers pour manipuler les en-têtes correctement
+    const headers = new Headers(options.headers || {});
 
-    const response = await fetch(url, { // Envoie la requête avec les en-têtes spécifiés
-        ...options,
-        headers,
-    });
-
-    if (response.status === 401) { // Si la réponse indique que la session a expiré (code 401)
-        logout(); // Déconnecte l'utilisateur
-        throw new Error('Session expirée. Veuillez vous reconnecter.'); // Lève une erreur
+    // Ajout de l'en-tête d'autorisation si un token existe
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
     }
 
-    return response; // Retourne la réponse de la requête
+    // Ajout du Content-Type pour les requêtes qui en ont besoin (sauf FormData)
+    if (!(options.body instanceof FormData)) {
+        // Ne définir Content-Type que s'il n'est pas déjà défini
+        if (!headers.has('Content-Type') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'PATCH')) {
+            headers.set('Content-Type', 'application/json');
+        }
+    } else {
+        // Si c'est un FormData, s'assurer que Content-Type n'est pas défini
+        headers.delete('Content-Type');
+    }
+
+    const response = await fetch(url, {
+        ...options,
+        headers
+    });
+
+    // Gestion automatique de l'expiration de session
+    if (response.status === 401) {
+        logout();
+        throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+
+    return response;
 };
