@@ -110,7 +110,6 @@ export function useAuth() {
         localStorage.removeItem('authToken');
         setUser(null);
     };
-
     return {
         user,
         loading,

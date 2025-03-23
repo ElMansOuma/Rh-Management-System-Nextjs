@@ -256,21 +256,8 @@ export default function SalarieProfilePage() {
                                 </div>
                             </div>
                             <div className="flex space-x-2">
-                                <Button
-                                    onClick={() => window.location.href = '/salarie/dashboard'}
-                                    variant="outline"
-                                    className="border-gray-300 hover:bg-gray-100"
-                                >
-                                    Retour au Tableau de Bord
-                                </Button>
-                                <Button
-                                    onClick={handleLogout}
-                                    variant="destructive"
-                                    className="bg-red-500 hover:bg-red-600 flex items-center gap-1"
-                                >
-                                    <LogOut className="h-4 w-4" />
-                                    Déconnexion
-                                </Button>
+
+
                             </div>
                         </div>
                     </CardHeader>
@@ -351,7 +338,7 @@ export default function SalarieProfilePage() {
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
                                     <div>
-                                        <p className="text-sm text-gray-500">Niveau d'étude</p>
+                                        <p className="text-sm text-gray-500">Niveau d{"'"}étude</p>
                                         <p className="font-medium">{collaborateur.niveauEtude || "Non spécifié"}</p>
                                     </div>
                                     <div>
@@ -359,11 +346,11 @@ export default function SalarieProfilePage() {
                                         <p className="font-medium">{collaborateur.specialite || "Non spécifiée"}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-500">Date d'entretien</p>
+                                        <p className="text-sm text-gray-500">Date d{"'"}entretien</p>
                                         <p className="font-medium">{formatDate(collaborateur.dateEntretien)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-500">Date d'embauche</p>
+                                        <p className="text-sm text-gray-500">Date d{"'"}embauche</p>
                                         <p className="font-medium">{formatDate(collaborateur.dateEmbauche)}</p>
                                     </div>
                                 </div>

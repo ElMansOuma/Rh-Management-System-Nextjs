@@ -45,7 +45,7 @@ export default function Login() {
             }));
 
             // Redirection vers le tableau de bord
-            router.push('/Admin/salarie/profil');
+            router.push('/Admin/dashboard');
         } catch (err) {
             console.error('Login error:', err);
             setError(err instanceof Error ? err.message : 'Erreur de connexion');

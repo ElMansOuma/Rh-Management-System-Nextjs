@@ -6,15 +6,17 @@ export interface PieceJustificative {
     nom: string;
     type: string;
     fichierUrl: string;
+    statut?: string; // Ajouté pour le filtre par statut
 }
 
-// Map pour les types de documents (pour l'affichage)
+// Updated Map for document types (for display)
 export const documentTypeMap: Record<string, string> = {
-    "ID": "Carte d'identité",
-    "DIPLOMA": "Diplôme",
+    "CONTRAT": "Contrat",
     "CV": "CV",
-    "CONTRACT": "Contrat",
-    "OTHER": "Autre documents"
+    "DIPLOME": "Diplôme",
+    "PIECE_IDENTITE": "Pièce d'identité",
+    "CERTIFICAT": "Certificat",
+    "AUTRE": "Autre"
 };
 
 export interface Collaborateur {
@@ -25,7 +27,7 @@ export interface Collaborateur {
     dateNaissance: string;
     lieuNaissance: string;
     adresseDomicile: string;
-    adresse?: string; // Pour compatibilité avec le formulaire
+    adresse?: string; // For compatibility with the form
     cnss: string;
     origine: string;
     niveauEtude: string;
@@ -36,203 +38,493 @@ export interface Collaborateur {
     piecesJustificatives?: PieceJustificative[];
 }
 
-// Importer fetchWithAuth du service d'authentification
+// Import fetchWithAuth from authentication service
 import { fetchWithAuth } from './auth';
+import axios from 'axios';
 
+// API URL correction - ensure it points to the backend not frontend
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_ENDPOINT = `${API_URL}/api`;
 
-// Service pour les collaborateurs
+// Debug log for the URL being used
+console.log("API URL used:", API_URL);
+
+// Axios configuration
+const api = axios.create({
+    baseURL: API_ENDPOINT,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Interceptor to add JWT token to requests
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Service for collaborateurs
 export const collaborateurService = {
     getAll: async (): Promise<Collaborateur[]> => {
-        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs`);
-        if (!response.ok) {
-            throw new Error('Erreur lors de la récupération des collaborateurs');
+        try {
+            console.log(`API Call: GET ${API_URL}/api/collaborateurs`);
+            const response = await fetchWithAuth(`${API_URL}/api/collaborateurs`);
+
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.warn('No collaborateurs found in database');
+                    return [];
+                }
+                throw new Error(`Error retrieving collaborateurs: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log(`Data received: ${data.length} collaborateurs`);
+            return data;
+        } catch (error) {
+            console.error("Error in getAll:", error);
+            throw error;
         }
-        return await response.json();
     },
 
     getById: async (id: number): Promise<Collaborateur> => {
-        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`);
-        if (!response.ok) {
-            throw new Error('Collaborateur non trouvé');
+        if (!id || isNaN(id)) {
+            throw new Error('Invalid collaborateur ID');
         }
-        return await response.json();
+
+        try {
+            const url = `${API_URL}/api/collaborateurs/${id}`;
+            console.log(`API Call: GET ${url}`);
+
+            const response = await fetchWithAuth(url);
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Collaborateur with ID ${id} not found`);
+                }
+                throw new Error(`Error retrieving collaborateur: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Data received:", data);
+            return data;
+        } catch (error) {
+            console.error(`Error in getById(${id}):`, error);
+            throw error;
+        }
     },
 
     create: async (collaborateur: Collaborateur): Promise<Collaborateur> => {
-        // Préparer les données en supprimant les champs temporaires
+        // Prepare data by removing temporary fields
         const { tempDocuments, ...collaborateurData } = collaborateur as any;
 
-        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(collaborateurData),
-        });
+        try {
+            console.log(`API Call: POST ${API_URL}/api/collaborateurs`);
+            console.log("Data sent:", collaborateurData);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            throw new Error(errorData?.message || 'Erreur lors de la création du collaborateur');
-        }
+            const response = await fetchWithAuth(`${API_URL}/api/collaborateurs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(collaborateurData),
+            });
 
-        const newCollaborateur = await response.json();
+            console.log(`Response: ${response.status} ${response.statusText}`);
 
-        // Si nous avons des documents temporaires et un ID de collaborateur
-        if (tempDocuments && tempDocuments.length > 0 && newCollaborateur.id) {
-            try {
-                // Pour chaque documents temporaire, appeler l'API pour l'uploader
-                for (const doc of tempDocuments) {
-                    await pieceJustificativeService.upload(
-                        newCollaborateur.id,
-                        doc.type,
-                        doc.file
-                    );
-                }
-            } catch (error) {
-                console.error("Erreur lors de l'upload des documents temporaires:", error);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || `Error creating collaborateur: ${response.status} ${response.statusText}`);
             }
-        }
 
-        return newCollaborateur;
+            const newCollaborateur = await response.json();
+            console.log("Collaborateur created:", newCollaborateur);
+
+            // If we have temporary documents and a valid collaborateur ID
+            if (tempDocuments && tempDocuments.length > 0 && newCollaborateur.id &&
+                typeof newCollaborateur.id === 'number' && !isNaN(newCollaborateur.id)) {
+                try {
+                    console.log(`Uploading ${tempDocuments.length} documents for collaborateur ${newCollaborateur.id}`);
+                    // For each temporary document, call the API to upload it
+                    for (const doc of tempDocuments) {
+                        await pieceJustificativeService.create(
+                            {
+                                nom: doc.file.name,
+                                type: doc.type,
+                                collaborateurId: newCollaborateur.id
+                            },
+                            doc.file
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error uploading temporary documents:", error);
+                }
+            }
+
+            return newCollaborateur;
+        } catch (error) {
+            console.error("Error in create:", error);
+            throw error;
+        }
     },
 
     update: async (id: number, collaborateur: Collaborateur): Promise<Collaborateur> => {
-        // Préparer les données en supprimant les champs temporaires
-        const { tempDocuments, ...collaborateurData } = collaborateur as any;
-
-        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(collaborateurData),
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur lors de la mise à jour du collaborateur');
+        // Verify that the ID is valid
+        if (!id || isNaN(id)) {
+            throw new Error('Invalid collaborateur ID');
         }
 
-        const updatedCollaborateur = await response.json();
+        try {
+            // Prepare data by removing temporary fields
+            const { tempDocuments, ...collaborateurData } = collaborateur as any;
 
-        // Si nous avons des documents temporaires et un ID de collaborateur
-        if (tempDocuments && tempDocuments.length > 0 && id) {
-            try {
-                // Pour chaque documents temporaire, appeler l'API pour l'uploader
-                for (const doc of tempDocuments) {
-                    await pieceJustificativeService.upload(
-                        id,
-                        doc.type,
-                        doc.file
-                    );
+            console.log(`API Call: PUT ${API_URL}/api/collaborateurs/${id}`);
+            console.log("Data sent:", collaborateurData);
+
+            const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(collaborateurData),
+            });
+
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Collaborateur with ID ${id} not found`);
                 }
+
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || `Error updating collaborateur: ${response.status} ${response.statusText}`);
+            }
+
+            const updatedCollaborateur = await response.json();
+            console.log("Collaborateur updated:", updatedCollaborateur);
+
+            // If we have temporary documents and a valid collaborateur ID
+            if (tempDocuments && tempDocuments.length > 0 && id &&
+                typeof id === 'number' && !isNaN(id)) {
+                try {
+                    console.log(`Uploading ${tempDocuments.length} documents for collaborateur ${id}`);
+                    // For each temporary document, call the API to upload it
+                    for (const doc of tempDocuments) {
+                        await pieceJustificativeService.create(
+                            {
+                                nom: doc.file.name,
+                                type: doc.type,
+                                collaborateurId: id
+                            },
+                            doc.file
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error uploading temporary documents:", error);
+                }
+            }
+
+            return updatedCollaborateur;
+        } catch (error) {
+            console.error(`Error in update(${id}):`, error);
+            throw error;
+        }
+    },
+
+    delete: async (id: number): Promise<boolean> => {
+        // Verify that the ID is valid
+        if (!id || isNaN(id)) {
+            throw new Error('Invalid collaborateur ID');
+        }
+
+        try {
+            console.log(`API Call: DELETE ${API_URL}/api/collaborateurs/${id}`);
+
+            const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`, {
+                method: 'DELETE',
+            });
+
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Collaborateur with ID ${id} not found`);
+                }
+                throw new Error(`Error deleting collaborateur: ${response.status} ${response.statusText}`);
+            }
+
+            console.log(`Collaborateur ${id} successfully deleted`);
+            return true;
+        } catch (error) {
+            console.error(`Error in delete(${id}):`, error);
+            throw error;
+        }
+    },
+};
+
+// Updated service for pieces justificatives
+export const pieceJustificativeService = {
+    // Get all documents with optional status filter
+    getAll: async (statusFilter = null) => {
+        try {
+            let url = '/api/pieces-justificatives';
+            if (statusFilter) {
+                url += `?statut=${statusFilter}`;
+            }
+            console.log(`API Call: GET ${url}`);
+
+            const response = await fetch(url);
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                throw new Error('Erreur lors de la récupération des documents');
+            }
+
+            const data = await response.json();
+            console.log(`Data received: ${data.length} documents`);
+            return data;
+        } catch (error) {
+            console.error("Erreur dans getAll:", error);
+            throw error;
+        }
+    },
+
+    // Get document by ID
+    getById: async (id: number) => {
+        try {
+            const url = `/api/pieces-justificatives/${id}`;
+            console.log(`API Call: GET ${url}`);
+
+            const response = await fetch(url);
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                throw new Error(`Erreur lors de la récupération du document avec ID ${id}`);
+            }
+
+            const data = await response.json();
+            console.log("Data received:", data);
+            return data;
+        } catch (error) {
+            console.error(`Erreur dans getById(${id}):`, error);
+            throw error;
+        }
+    },
+
+    // Get documents by collaborateur ID with optional status filter
+    getByCollaborateurId: async (collaborateurId: number, statusFilter = null) => {
+        try {
+            let url = `/api/pieces-justificatives/collaborateur/${collaborateurId}`;
+            if (statusFilter) {
+                url += `?statut=${statusFilter}`;
+            }
+            console.log(`API Call: GET ${url}`);
+
+            const response = await fetch(url);
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                throw new Error('Erreur lors de la récupération des documents');
+            }
+
+            const data = await response.json();
+            console.log(`Data received: ${data.length} documents for collaborateur ${collaborateurId}`);
+            return data;
+        } catch (error) {
+            console.error(`Erreur dans getByCollaborateurId(${collaborateurId}):`, error);
+            throw error;
+        }
+    },
+
+    // For compatibility with existing code
+    getAllByCollaborateur: async (collaborateurId: number, statusFilter = null): Promise<PieceJustificative[]> => {
+        return pieceJustificativeService.getByCollaborateurId(collaborateurId, statusFilter);
+    },
+
+    // Create new document
+    create: async (pieceJustificative: any, file: File) => {
+        try {
+            const formData = new FormData();
+
+            // Create a JSON Blob with the appropriate MIME type
+            const pieceJustificativeBlob = new Blob(
+                [JSON.stringify(pieceJustificative)],
+                { type: 'application/json' }
+            );
+
+            // Add the JSON Blob and file
+            formData.append('pieceJustificative', pieceJustificativeBlob);
+            formData.append('file', file);
+
+            console.log('Uploading file:', file.name, 'for collaborateur:', pieceJustificative.collaborateurId);
+
+            // Use Next.js API route to bypass CORS issues
+            const response = await fetch('/api/upload/pieces-justificatives', {
+                method: 'POST',
+                body: formData,
+                // Do not specify Content-Type here, it will be set automatically with the boundary
+            });
+
+            if (!response.ok) {
+                let errorMessage;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || `HTTP Error ${response.status}`;
+                } catch (e) {
+                    errorMessage = `HTTP Error ${response.status}`;
+                }
+                console.error('File upload failed:', errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+            console.log('Upload successful, response:', data);
+            return data;
+        } catch (error) {
+            console.error('Error in create method:', error);
+            throw error;
+        }
+    },
+
+    // For compatibility with existing code
+    upload: async (collaborateurId: number, type: string, file: File): Promise<PieceJustificative> => {
+        return pieceJustificativeService.create({
+            nom: file.name,
+            type: type,
+            collaborateurId: collaborateurId
+        }, file);
+    },
+
+    // Update document
+    update: async (id: number, pieceJustificative: any, file?: File) => {
+        try {
+            const formData = new FormData();
+
+            // Create a JSON Blob with the appropriate MIME type
+            const pieceJustificativeBlob = new Blob(
+                [JSON.stringify(pieceJustificative)],
+                { type: 'application/json' }
+            );
+
+            // Add the JSON Blob
+            formData.append('pieceJustificative', pieceJustificativeBlob);
+
+            // Add the file if it exists
+            if (file) {
+                formData.append('file', file);
+            }
+
+            // If ID is provided, modify the method for a PUT
+            const response = await fetch(`/api/upload/pieces-justificatives/${id}`, {
+                method: 'POST', // The server-side route will detect the ID and change to PUT
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erreur lors de la mise à jour du fichier`);
+            }
+
+            return response.json();
+        } catch (error) {
+            console.error(`Error in update(${id}):`, error);
+            throw error;
+        }
+    },
+
+    // Update document status - modified to use PATCH method
+    updateStatut: async (id: number, statut: string) => {
+        try {
+            console.log(`API Call: PATCH /api/pieces-justificatives/${id}/statut`);
+            console.log("Data sent:", { statut });
+
+            const response = await fetch(`/api/pieces-justificatives/${id}/statut`, {
+                method: 'PATCH', // Changed from PUT to PATCH
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ statut }),
+            });
+
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                throw new Error('Erreur lors de la mise à jour du statut');
+            }
+
+            const data = await response.json();
+            console.log("Status updated:", data);
+            return data;
+        } catch (error) {
+            console.error(`Error in updateStatut(${id}):`, error);
+            throw error;
+        }
+    },
+
+    // Delete document
+    delete: async (id: number) => {
+        try {
+            console.log(`API Call: DELETE /api/pieces-justificatives/${id}`);
+
+            const response = await fetch(`/api/pieces-justificatives/${id}`, {
+                method: 'DELETE',
+            });
+
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                throw new Error('Erreur lors de la suppression du document');
+            }
+
+            console.log(`Document ${id} successfully deleted`);
+            // Returning the JSON response instead of just true
+            return await response.json();
+        } catch (error) {
+            console.error(`Error in delete(${id}):`, error);
+            throw error;
+        }
+    },
+
+    // Get download URL for a file - updated path
+    getDownloadUrl: (fileName: string) => {
+        return `/api/files/${fileName}`; // Changed from /api/pieces-justificatives/download/
+    },
+
+    // For compatibility with existing code - upload multiple files
+    uploadMultiple: async (collaborateurId: number, files: File[], types: string[]): Promise<PieceJustificative[]> => {
+        const results = [];
+        console.log(`Starting upload of ${files.length} files for collaborateur ${collaborateurId}`);
+
+        for (let i = 0; i < files.length; i++) {
+            try {
+                console.log(`Uploading file ${i+1}/${files.length}: ${files[i].name}`);
+                const result = await pieceJustificativeService.create({
+                    nom: files[i].name,
+                    type: types[i],
+                    collaborateurId: collaborateurId
+                }, files[i]);
+
+                results.push(result);
             } catch (error) {
-                console.error("Erreur lors de l'upload des documents temporaires:", error);
+                console.error(`Error uploading file ${i+1}/${files.length}:`, error);
+                // Continue with other files even if one fails
             }
         }
 
-        return updatedCollaborateur;
-    },
-
-    delete: async (id: number): Promise<boolean> => {
-        const response = await fetchWithAuth(`${API_URL}/api/collaborateurs/${id}`, {
-            method: 'DELETE',
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur lors de la suppression du collaborateur');
-        }
-
-        return true;
-    },
+        console.log(`Successfully uploaded ${results.length}/${files.length} files`);
+        return results;
+    }
 };
 
-// Service pour les pièces justificatives
-export const pieceJustificativeService = {
-    getAllByCollaborateur: async (collaborateurId: number): Promise<PieceJustificative[]> => {
-        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`);
-        if (!response.ok) {
-            throw new Error('Erreur lors de la récupération des pièces justificatives');
-        }
-        return await response.json();
-    },
-
-    upload: async (collaborateurId: number, type: string, file: File): Promise<PieceJustificative> => {
-        const formData = new FormData();
-        formData.append('type', type);
-        formData.append('file', file);
-
-        // Pour FormData, ne pas spécifier Content-Type car il sera automatiquement défini
-        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`, {
-            method: 'POST',
-            headers: {
-                // Supprimez le Content-Type pour permettre au navigateur de définir le boundary correct
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur lors de l\'upload de la pièce justificative');
-        }
-
-        return await response.json();
-    },
-
-    uploadMultiple: async (collaborateurId: number, files: File[], types: string[]): Promise<PieceJustificative[]> => {
-        const formData = new FormData();
-
-        files.forEach((file, index) => {
-            formData.append('files', file);
-        });
-
-        types.forEach((type, index) => {
-            formData.append('types', type);
-        });
-
-        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/batch/${collaborateurId}`, {
-            method: 'POST',
-            headers: {
-                // Supprimez le Content-Type pour permettre au navigateur de définir le boundary correct
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur lors de l\'upload des pièces justificatives');
-        }
-
-        return await response.json();
-    },
-
-    update: async (id: number, type: string, file: File): Promise<PieceJustificative> => {
-        const formData = new FormData();
-        formData.append('type', type);
-        formData.append('file', file);
-
-        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/${id}`, {
-            method: 'PUT',
-            headers: {
-                // Supprimez le Content-Type pour permettre au navigateur de définir le boundary correct
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur lors de la mise à jour de la pièce justificative');
-        }
-
-        return await response.json();
-    },
-
-    delete: async (id: number): Promise<boolean> => {
-        const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/${id}`, {
-            method: 'DELETE',
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur lors de la suppression de la pièce justificative');
-        }
-
-        return true;
-    },
-};
+export default api;

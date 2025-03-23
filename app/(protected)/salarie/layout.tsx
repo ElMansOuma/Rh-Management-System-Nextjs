@@ -1,7 +1,7 @@
 // app/(protected)/layout.tsx
 "use client";
+import '../../globals.css'
 
-import '../../globals.css';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated } from '@/services/auth';
@@ -15,7 +15,8 @@ import {
     LogOut,
     Menu,
     X,
-    Bell, HistoryIcon
+    Bell,
+    HistoryIcon
 } from 'lucide-react';
 
 export default function ProtectedLayout({
@@ -28,13 +29,13 @@ export default function ProtectedLayout({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [userInfo, setUserInfo] = useState<{ nom: string; prenom: string } | null>(null);
 
     // Menu items pour l'interface salarié
     const menuItems = [
-
         {
             title: 'Profil',
-            icon: <User  className="w-5 h-5" />,
+            icon: <User className="w-5 h-5" />,
             path: '/salarie/profil',
             description: 'Prendre des notes personnelles'
         },
@@ -46,7 +47,7 @@ export default function ProtectedLayout({
         },
         {
             title: 'Historique',
-            icon: <HistoryIcon  className="w-5 h-5" />,
+            icon: <HistoryIcon className="w-5 h-5" />,
             path: '/salarie/historique',
             description: 'Consulter votre historique'
         },
@@ -68,7 +69,6 @@ export default function ProtectedLayout({
             path: '/salarie/absences',
             description: 'Déclarer vos absences'
         },
-
         {
             title: 'Notes',
             icon: <BookOpen className="w-5 h-5" />,
@@ -87,11 +87,21 @@ export default function ProtectedLayout({
         // Vérifier l'authentification côté client
         if (!isAuthenticated()) {
             router.push('/login');
+        } else {
+            // Récupérer les informations de l'utilisateur depuis localStorage
+            const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+            setUserInfo(userInfo);
         }
     }, [router]);
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userInfo');
+        router.push('/loginUser');
     };
 
     // Afficher un état de chargement pendant la vérification d'authentification
@@ -112,9 +122,7 @@ export default function ProtectedLayout({
                         {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
 
-                    <div className="flex items-center">
-                        <h2 className="text-xl font-semibold text-gray-800">Espace Salarié</h2>
-                    </div>
+
 
                     <div className="ml-auto flex items-center space-x-4">
                         {/* Notifications */}
@@ -165,7 +173,7 @@ export default function ProtectedLayout({
                                 <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
                                     <User className="w-5 h-5" />
                                 </div>
-                                <span className="hidden md:block ml-2">Jean Dupont</span>
+                                <span className="hidden md:block ml-2">{userInfo ? `${userInfo.prenom} ${userInfo.nom}` : 'Utilisateur'}</span>
                             </button>
 
                             {/* Dropdown user menu */}
@@ -182,11 +190,12 @@ export default function ProtectedLayout({
                                         </div>
                                     </Link>
                                     <div className="border-t border-gray-100"></div>
-                                    <Link href="/logout">
-                                        <div className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                            Déconnexion
-                                        </div>
-                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                                    >
+                                        Déconnexion
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -218,7 +227,10 @@ export default function ProtectedLayout({
                         </nav>
                     </div>
                     <div className="p-4 border-t border-gray-700">
-                        <button className="flex items-center justify-center w-full p-2 hover:bg-gray-700 rounded-lg">
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center justify-center w-full p-2 hover:bg-gray-700 rounded-lg"
+                        >
                             <LogOut className="w-5 h-5 mr-2" />
                             <span>Déconnexion</span>
                         </button>
@@ -254,7 +266,10 @@ export default function ProtectedLayout({
                             </nav>
                         </div>
                         <div className="p-4 border-t border-gray-700">
-                            <button className="flex items-center justify-center w-full p-2 hover:bg-gray-700 rounded-lg text-white">
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center justify-center w-full p-2 hover:bg-gray-700 rounded-lg text-white"
+                            >
                                 <LogOut className="w-5 h-5 mr-2" />
                                 <span>Déconnexion</span>
                             </button>

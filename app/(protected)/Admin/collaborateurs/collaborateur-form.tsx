@@ -187,7 +187,6 @@ export function CollaborateurForm({ onSuccess, initialData }: CollaborateurFormP
                       />
                     </div>
 
-
                     <div className="space-y-2">
                       <Label htmlFor="dateNaissance" className="text-gray-700">Date de Naissance</Label>
                       <Input
