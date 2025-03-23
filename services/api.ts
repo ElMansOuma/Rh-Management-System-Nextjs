@@ -278,13 +278,13 @@ export const pieceJustificativeService = {
     // Get all documents with optional status filter
     getAll: async (statusFilter = null) => {
         try {
-            let url = '/api/pieces-justificatives';
+            let url = `${API_URL}/api/pieces-justificatives`;
             if (statusFilter) {
                 url += `?statut=${statusFilter}`;
             }
             console.log(`API Call: GET ${url}`);
 
-            const response = await fetch(url);
+            const response = await fetchWithAuth(url);
             console.log(`Response: ${response.status} ${response.statusText}`);
 
             if (!response.ok) {
@@ -303,10 +303,10 @@ export const pieceJustificativeService = {
     // Get document by ID
     getById: async (id: number) => {
         try {
-            const url = `/api/pieces-justificatives/${id}`;
+            const url = `${API_URL}/api/pieces-justificatives/${id}`;
             console.log(`API Call: GET ${url}`);
 
-            const response = await fetch(url);
+            const response = await fetchWithAuth(url);
             console.log(`Response: ${response.status} ${response.statusText}`);
 
             if (!response.ok) {
@@ -325,13 +325,13 @@ export const pieceJustificativeService = {
     // Get documents by collaborateur ID with optional status filter
     getByCollaborateurId: async (collaborateurId: number, statusFilter = null) => {
         try {
-            let url = `/api/pieces-justificatives/collaborateur/${collaborateurId}`;
+            let url = `${API_URL}/api/pieces-justificatives/collaborateur/${collaborateurId}`;
             if (statusFilter) {
                 url += `?statut=${statusFilter}`;
             }
             console.log(`API Call: GET ${url}`);
 
-            const response = await fetch(url);
+            const response = await fetchWithAuth(url);
             console.log(`Response: ${response.status} ${response.statusText}`);
 
             if (!response.ok) {
@@ -372,7 +372,7 @@ export const pieceJustificativeService = {
             console.log('Uploading file:', file.name, 'for collaborateur:', pieceJustificative.collaborateurId);
 
             // Appeler directement l'API du backend au lieu de passer par l'API route de Next.js
-            const response = await fetch(`${API_URL}/api/pieces-justificatives`, {
+            const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives`, {
                 method: 'POST',
                 body: formData,
                 // Ne pas spécifier Content-Type car il sera automatiquement défini avec la boundary
@@ -428,7 +428,7 @@ export const pieceJustificativeService = {
             }
 
             // Appeler directement l'API du backend
-            const response = await fetch(`${API_URL}/api/pieces-justificatives/${id}`, {
+            const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/${id}`, {
                 method: 'PUT',
                 body: formData,
             });
@@ -448,10 +448,10 @@ export const pieceJustificativeService = {
     // Update document status - modified to use PATCH method
     updateStatut: async (id: number, statut: string) => {
         try {
-            console.log(`API Call: PATCH /api/pieces-justificatives/${id}/statut`);
+            console.log(`API Call: PATCH ${API_URL}/api/pieces-justificatives/${id}/statut`);
             console.log("Data sent:", { statut });
 
-            const response = await fetch(`/api/pieces-justificatives/${id}/statut`, {
+            const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/${id}/statut`, {
                 method: 'PATCH', // Changed from PUT to PATCH
                 headers: {
                     'Content-Type': 'application/json',
@@ -477,9 +477,9 @@ export const pieceJustificativeService = {
     // Delete document
     delete: async (id: number) => {
         try {
-            console.log(`API Call: DELETE /api/pieces-justificatives/${id}`);
+            console.log(`API Call: DELETE ${API_URL}/api/pieces-justificatives/${id}`);
 
-            const response = await fetch(`/api/pieces-justificatives/${id}`, {
+            const response = await fetchWithAuth(`${API_URL}/api/pieces-justificatives/${id}`, {
                 method: 'DELETE',
             });
 
@@ -500,7 +500,7 @@ export const pieceJustificativeService = {
 
     // Get download URL for a file - updated path
     getDownloadUrl: (fileName: string) => {
-        return `/api/files/${fileName}`; // Changed from /api/pieces-justificatives/download/
+        return `${API_URL}/api/files/${fileName}`; // Changed from /api/pieces-justificatives/download/
     },
 
     // For compatibility with existing code - upload multiple files
