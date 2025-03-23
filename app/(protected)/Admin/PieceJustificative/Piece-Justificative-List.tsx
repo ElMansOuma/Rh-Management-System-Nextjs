@@ -187,7 +187,7 @@ export function PieceJustificativeList({ collaborateurId, isAdminView = false, s
                                     <TableHead>Nom</TableHead>
                                     <TableHead>Type</TableHead>
                                     {!collaborateurId && <TableHead>Collaborateur</TableHead>}
-                                    <TableHead>Date d'ajout</TableHead>
+                                    <TableHead>Date d{"'"}ajout</TableHead>
                                     <TableHead>Statut</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>

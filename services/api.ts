@@ -352,28 +352,30 @@ export const pieceJustificativeService = {
         return pieceJustificativeService.getByCollaborateurId(collaborateurId, statusFilter);
     },
 
-    // Create new document
+    // Create new document - MÉTHODE CORRIGÉE
     create: async (pieceJustificative: any, file: File) => {
         try {
             const formData = new FormData();
 
-            // Create a JSON Blob with the appropriate MIME type
-            const pieceJustificativeBlob = new Blob(
-                [JSON.stringify(pieceJustificative)],
-                { type: 'application/json' }
-            );
-
-            // Add the JSON Blob and file
-            formData.append('pieceJustificative', pieceJustificativeBlob);
+            // Ajouter le fichier directement
             formData.append('file', file);
+
+            // Ajouter les autres champs directement dans le FormData (au lieu d'un JSON blob)
+            formData.append('description', file.name);
+            formData.append('type', pieceJustificative.type);
+
+            // Ajouter l'ID du collaborateur directement
+            if (pieceJustificative.collaborateurId) {
+                formData.append('collaborateurId', pieceJustificative.collaborateurId.toString());
+            }
 
             console.log('Uploading file:', file.name, 'for collaborateur:', pieceJustificative.collaborateurId);
 
-            // Use Next.js API route to bypass CORS issues
-            const response = await fetch('/api/upload/pieces-justificatives', {
+            // Appeler directement l'API du backend au lieu de passer par l'API route de Next.js
+            const response = await fetch(`${API_URL}/api/pieces-justificatives`, {
                 method: 'POST',
                 body: formData,
-                // Do not specify Content-Type here, it will be set automatically with the boundary
+                // Ne pas spécifier Content-Type car il sera automatiquement défini avec la boundary
             });
 
             if (!response.ok) {
@@ -411,23 +413,23 @@ export const pieceJustificativeService = {
         try {
             const formData = new FormData();
 
-            // Create a JSON Blob with the appropriate MIME type
-            const pieceJustificativeBlob = new Blob(
-                [JSON.stringify(pieceJustificative)],
-                { type: 'application/json' }
-            );
+            // Ajouter les champs directement (au lieu d'un JSON blob)
+            formData.append('description', pieceJustificative.nom || pieceJustificative.description);
+            formData.append('type', pieceJustificative.type);
 
-            // Add the JSON Blob
-            formData.append('pieceJustificative', pieceJustificativeBlob);
+            // Ajouter l'ID du collaborateur directement
+            if (pieceJustificative.collaborateurId) {
+                formData.append('collaborateurId', pieceJustificative.collaborateurId.toString());
+            }
 
             // Add the file if it exists
             if (file) {
                 formData.append('file', file);
             }
 
-            // If ID is provided, modify the method for a PUT
-            const response = await fetch(`/api/upload/pieces-justificatives/${id}`, {
-                method: 'POST', // The server-side route will detect the ID and change to PUT
+            // Appeler directement l'API du backend
+            const response = await fetch(`${API_URL}/api/pieces-justificatives/${id}`, {
+                method: 'PUT',
                 body: formData,
             });
 
