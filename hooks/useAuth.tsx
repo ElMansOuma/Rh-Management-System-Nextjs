@@ -8,6 +8,8 @@ interface User {
     email?: string;
     role: string;
     collaborateurId?: number;
+    nom?: string;
+    prenom?: string;
 }
 
 export function useAuth() {
@@ -36,6 +38,7 @@ export function useAuth() {
 
                 if (response.ok) {
                     const userData = await response.json();
+                    // Assurez-vous que userData contient les bonnes propriétés
                     setUser(userData);
                 } else {
                     // Token invalide ou expiré
@@ -70,9 +73,17 @@ export function useAuth() {
             }
 
             const data = await response.json();
+
+            // Important : s'assurer que l'ID du collaborateur est correctement mappé
+            const userWithCollaborateurId = {
+                ...data.user,
+                // Si data.user.collaborateurId n'existe pas, essayer de le récupérer depuis data
+                collaborateurId: data.user.collaborateurId || data.collaborateurId || null
+            };
+
             localStorage.setItem('authToken', data.token);
-            setUser(data.user);
-            return data.user;
+            setUser(userWithCollaborateurId);
+            return userWithCollaborateurId;
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -110,6 +121,7 @@ export function useAuth() {
         localStorage.removeItem('authToken');
         setUser(null);
     };
+
     return {
         user,
         loading,

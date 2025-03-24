@@ -6,7 +6,7 @@ export interface PieceJustificative {
     nom: string;
     type: string;
     fichierUrl: string;
-    statut?: string; // Ajouté pour le filtre par statut
+    statut?: string;
 }
 
 // Updated Map for document types (for display)
@@ -121,6 +121,35 @@ export const collaborateurService = {
             return data;
         } catch (error) {
             console.error(`Error in getById(${id}):`, error);
+            throw error;
+        }
+    },
+
+    // Nouvelle méthode pour récupérer un collaborateur par CIN
+    getByCin: async (cin: string): Promise<Collaborateur> => {
+        if (!cin) {
+            throw new Error('CIN non valide');
+        }
+
+        try {
+            const url = `${API_URL}/api/collaborateurs/cin/${cin}`;
+            console.log(`API Call: GET ${url}`);
+
+            const response = await fetchWithAuth(url);
+            console.log(`Response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error(`Collaborateur avec CIN ${cin} non trouvé`);
+                }
+                throw new Error(`Erreur lors de la récupération du collaborateur: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Data received:", data);
+            return data;
+        } catch (error) {
+            console.error(`Error in getByCin(${cin}):`, error);
             throw error;
         }
     },

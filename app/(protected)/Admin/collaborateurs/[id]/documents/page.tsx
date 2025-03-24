@@ -70,7 +70,7 @@ export default function CollaborateurDocumentsPage() {
                     Documents {collaborateur ? `de ${collaborateur.prenom} ${collaborateur.nom}` : ""}
                 </h1>
 
-                <Link href={`/Admin/collaborateurs/${collaborateurId}`}>
+                <Link href={`/Admin/collaborateurs/collaborateurs`}>
                     <Button variant="outline" className="flex items-center gap-2">
                         <ArrowLeft className="h-4 w-4" /> Retour
                     </Button>

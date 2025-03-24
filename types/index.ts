@@ -19,13 +19,32 @@ export interface Collaborateur {
     id?: number;
     nom: string;
     prenom: string;
-    email: string;
-    telephone: string;
-    adresse: string;
-    dateNaissance: string;
     cin: string;
+    dateNaissance: string;
+    lieuNaissance: string;
+    adresseDomicile: string;
+    adresse?: string; // For compatibility with the form
+    cnss: string;
+    origine: string;
+    niveauEtude: string;
+    specialite: string;
+    dateEntretien: string;
     dateEmbauche: string;
-    poste: string;
-    departement: string;
-    salaire: number;
+    description: string;
+    piecesJustificatives?: PieceJustificative[];
 }
+
+export interface LoginUserRequest {
+    cin: string;
+    password: string;
+}
+
+export interface AuthUserResponse {
+    id: number;
+    nom: string;
+    prenom: string;
+    cin: string;
+    token: string;
+    resetPassword: boolean;
+}
+
