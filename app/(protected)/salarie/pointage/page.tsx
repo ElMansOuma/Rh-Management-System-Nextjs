@@ -5,14 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { pointageService, PointageDTO } from "@/services/pointage-api";
 import AbsenceForm from "./absence-form";
 import AbsencesList from "./absences-list";
 import Resume from "./resume";
 
 export default function PointagePage() {
     const { toast } = useToast();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [lastPointage, setLastPointage] = useState<any>(null);
+    const [lastPointage, setLastPointage] = useState<PointageDTO | null>(null);
     const [currentTab, setCurrentTab] = useState("pointage");
 
     useEffect(() => {
@@ -22,49 +25,34 @@ export default function PointagePage() {
 
     const fetchLastPointage = async () => {
         try {
-            // Appel API pour récupérer le dernier pointage
-            // À implémenter selon votre API
-            // const response = await fetch('/api/pointage/last');
-            // const data = await response.json();
-            // setLastPointage(data);
-
-            // Pour le moment, simulons des données
-            setLastPointage({
-                type: "arrivee",
-                timestamp: new Date().getTime() - 3600000, // 1 heure avant
-            });
+            const data = await pointageService.getDernierPointage();
+            setLastPointage(data);
         } catch (error) {
             console.error("Erreur lors du chargement du pointage", error);
+            toast({
+                title: "Erreur",
+                description: "Impossible de charger le dernier pointage",
+                variant: "destructive",
+            });
         }
     };
 
-    const handlePointage = async (type: "arrivee" | "depart") => {
+    const handlePointage = async (type: "ARRIVEE" | "DEPART") => {
         setLoading(true);
         try {
-            // Appel API pour enregistrer le pointage
-            // À implémenter selon votre API
-            // const response = await fetch('/api/pointage', {
-            //   method: 'POST',
-            //   body: JSON.stringify({ type }),
-            // });
-
-            // Simulation d'un appel API
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const pointage = await pointageService.enregistrerPointage(type);
 
             // Mise à jour de l'état local
-            setLastPointage({
-                type,
-                timestamp: new Date().getTime(),
-            });
+            setLastPointage(pointage);
 
             toast({
                 title: "Pointage enregistré",
-                description: `Vous avez enregistré votre ${type === "arrivee" ? "arrivée" : "départ"} avec succès.`,
+                description: `Vous avez enregistré votre ${type === "ARRIVEE" ? "arrivée" : "départ"} avec succès.`,
             });
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 title: "Erreur",
-                description: "Impossible d'enregistrer le pointage",
+                description: error.message || "Impossible d'enregistrer le pointage",
                 variant: "destructive",
             });
         } finally {
@@ -72,8 +60,8 @@ export default function PointagePage() {
         }
     };
 
-    const shouldShowArriveeButton = !lastPointage || lastPointage.type === "depart";
-    const shouldShowDepartButton = lastPointage && lastPointage.type === "arrivee";
+    const shouldShowArriveeButton = !lastPointage || lastPointage.type === "DEPART";
+    const shouldShowDepartButton = lastPointage && lastPointage.type === "ARRIVEE";
 
     return (
         <div className="container mx-auto py-6">
@@ -96,7 +84,7 @@ export default function PointagePage() {
                                 <div className="text-center mb-6">
                                     {lastPointage && (
                                         <p>
-                                            Dernier pointage : {lastPointage.type === "arrivee" ? "Arrivée" : "Départ"} à{" "}
+                                            Dernier pointage : {lastPointage.type === "ARRIVEE" ? "Arrivée" : "Départ"} à{" "}
                                             {new Date(lastPointage.timestamp).toLocaleTimeString()}
                                         </p>
                                     )}
@@ -106,7 +94,7 @@ export default function PointagePage() {
                                     {shouldShowArriveeButton && (
                                         <Button
                                             size="lg"
-                                            onClick={() => handlePointage("arrivee")}
+                                            onClick={() => handlePointage("ARRIVEE")}
                                             disabled={loading}
                                             className="bg-green-600 hover:bg-green-700 text-white"
                                         >
@@ -117,7 +105,7 @@ export default function PointagePage() {
                                     {shouldShowDepartButton && (
                                         <Button
                                             size="lg"
-                                            onClick={() => handlePointage("depart")}
+                                            onClick={() => handlePointage("DEPART")}
                                             disabled={loading}
                                             className="bg-orange-500 hover:bg-orange-600 text-white"
                                         >

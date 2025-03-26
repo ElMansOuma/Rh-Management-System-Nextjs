@@ -250,6 +250,7 @@ export default function SalarieProfilePage() {
                                     <CardTitle className="text-2xl font-bold text-gray-900">
                                         Mon Profil
                                     </CardTitle>
+
                                     <p className="text-gray-500 text-sm mt-1">
                                         Vos informations personnelles et professionnelles
                                     </p>

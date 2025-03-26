@@ -9,7 +9,6 @@ import Link from 'next/link';
 import {
     Clock,
     Calendar,
-    FileText,
     User,
     BookOpen,
     LogOut,
@@ -39,11 +38,17 @@ export default function ProtectedLayout({
             path: '/salarie/profil',
             description: 'Prendre des notes personnelles'
         },
+       // {
+          //  title: 'Documents',
+            //icon: <FileText className="w-5 h-5" />,
+           // path: '/salarie/documents',
+            //description: 'Consulter vos documents RH'
+        //},
         {
-            title: 'Documents',
-            icon: <FileText className="w-5 h-5" />,
-            path: '/salarie/documents',
-            description: 'Consulter vos documents RH'
+            title: 'Pointage',
+            icon: <Clock className="w-5 h-5" />,
+            path: '/salarie/pointage',
+            description: 'Marquer votre entrée et sortie'
         },
         {
             title: 'Historique',
@@ -51,12 +56,7 @@ export default function ProtectedLayout({
             path: '/salarie/historique',
             description: 'Consulter votre historique'
         },
-        {
-            title: 'Pointage',
-            icon: <Clock className="w-5 h-5" />,
-            path: '/salarie/pointage',
-            description: 'Marquer votre entrée et sortie'
-        },
+
         {
             title: 'Congés',
             icon: <Calendar className="w-5 h-5" />,
@@ -174,6 +174,7 @@ export default function ProtectedLayout({
                                     <User className="w-5 h-5" />
                                 </div>
                                 <span className="hidden md:block ml-2">{userInfo ? `${userInfo.prenom} ${userInfo.nom}` : 'Utilisateur'}</span>
+
                             </button>
 
                             {/* Dropdown user menu */}
@@ -278,7 +279,10 @@ export default function ProtectedLayout({
                 </div>
 
                 {/* Main content */}
-                <main className="flex-1 lg:ml-64 p-8 pt-16">{children}</main>
+                <main className="flex-1 lg:ml-64 p-8 pt-16">
+                    {children}
+
+                </main>
             </div>
         </div>
     );

@@ -109,7 +109,7 @@ export function UserNav() {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/profile")} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => router.push("/Admin/profile")} className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
                     <span>Mon profil</span>
                 </DropdownMenuItem>

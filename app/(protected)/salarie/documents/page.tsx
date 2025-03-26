@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { FileText, Download, Eye, Clock, Search } from 'lucide-react';
-import { collaborateurService, pieceJustificativeService } from '../../../../services/api';
+import { FileText, Download, Eye, Clock, Search, AlertCircle } from 'lucide-react';
+import { pieceJustificativeService } from '../../../../services/api';
 import { useAuth } from '../../../../hooks/useAuth';
 
 // Définition des types
@@ -31,7 +31,6 @@ const typeToCategory: Record<string, Exclude<DocumentCategory, 'all'>> = {
     "PIECE_IDENTITE": "other",
     "CERTIFICAT": "certificates",
     "AUTRE": "other",
-    // Ajoutez d'autres mappings selon vos besoins
     "BULLETIN_PAIE": "payslips"
 };
 
@@ -57,23 +56,39 @@ export default function DocumentsPage() {
         async function fetchDocuments() {
             try {
                 setLoading(true);
-                // Si l'utilisateur est connecté et a un ID
-                if (user && user.id) {
-                    // Récupérer les pièces justificatives du collaborateur
-                    const pieces = await pieceJustificativeService.getAllByCollaborateur(user.id);
+                // Vérifier si l'utilisateur est connecté et a un ID
+                if (!user || !user.id) {
+                    setError("Vous devez être connecté pour voir vos documents.");
+                    setLoading(false);
+                    return;
+                }
 
-                    // Convertir les pièces justificatives en format document pour l'UI
-                    const formattedDocs = pieces.map(piece => ({
+                console.log("Récupération des documents pour l'utilisateur ID:", user.id);
+
+                // Récupérer les pièces justificatives du collaborateur
+                const pieces = await pieceJustificativeService.getAllByCollaborateur(user.id);
+
+                if (!pieces || pieces.length === 0) {
+                    console.log("Aucun document trouvé pour cet utilisateur");
+                }
+
+                // Convertir les pièces justificatives en format document pour l'UI
+                const formattedDocs = pieces.map(piece => {
+                    // Extraction de la date à partir de l'URL du fichier ou utilisation de la date actuelle
+                    const dateStr = piece.fichierUrl?.split('_')[0];
+                    const documentDate = dateStr ? new Date(dateStr) : new Date();
+
+                    return {
                         id: piece.id as number,
-                        title: piece.nom,
-                        date: new Date(piece.fichierUrl.split('_')[0] || Date.now()).toLocaleDateString('fr-FR'),
+                        title: piece.nom || "Document sans titre",
+                        date: documentDate.toLocaleDateString('fr-FR'),
                         category: typeToCategory[piece.type] || 'other',
                         icon: <FileText className={`w-5 h-5 ${getCategoryColor(typeToCategory[piece.type] || 'other')}`} />,
                         fichierUrl: piece.fichierUrl
-                    }));
+                    };
+                });
 
-                    setDocuments(formattedDocs);
-                }
+                setDocuments(formattedDocs);
             } catch (err) {
                 console.error('Erreur lors de la récupération des documents:', err);
                 setError('Impossible de charger les documents. Veuillez réessayer plus tard.');
@@ -125,8 +140,23 @@ export default function DocumentsPage() {
     };
 
     return (
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4 py-8">
             <h1 className="text-2xl font-bold mb-6">Mes Documents</h1>
+
+            {!user && (
+                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <AlertCircle className="h-5 w-5 text-yellow-400" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm text-yellow-700">
+                                Vous devez être connecté pour voir vos documents. Veuillez vous connecter avec votre CIN.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Barre de recherche et filtres */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -163,9 +193,15 @@ export default function DocumentsPage() {
             {/* Liste des documents */}
             <div className="bg-white rounded-lg shadow-md">
                 {loading ? (
-                    <div className="p-6 text-center">Chargement des documents...</div>
+                    <div className="p-6 text-center">
+                        <div className="animate-spin inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full mb-2"></div>
+                        <p>Chargement des documents...</p>
+                    </div>
                 ) : error ? (
-                    <div className="p-6 text-center text-red-500">{error}</div>
+                    <div className="p-6 text-center text-red-500">
+                        <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                        <p>{error}</p>
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
@@ -205,6 +241,7 @@ export default function DocumentsPage() {
                                                 onClick={() => previewDocument(document)}
                                                 className="text-indigo-600 hover:text-indigo-900 mr-4"
                                                 disabled={!document.fichierUrl}
+                                                title="Prévisualiser"
                                             >
                                                 <Eye className="w-5 h-5" />
                                             </button>
@@ -212,6 +249,7 @@ export default function DocumentsPage() {
                                                 onClick={() => downloadDocument(document)}
                                                 className="text-green-600 hover:text-green-900"
                                                 disabled={!document.fichierUrl}
+                                                title="Télécharger"
                                             >
                                                 <Download className="w-5 h-5" />
                                             </button>
@@ -229,17 +267,6 @@ export default function DocumentsPage() {
                         </table>
                     </div>
                 )}
-            </div>
-
-            {/* Section pour demander un document */}
-            <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-lg font-semibold mb-4">Demander un document</h2>
-                <p className="text-gray-600 mb-4">
-                    Vous ne trouvez pas le document que vous cherchez ? Faites une demande auprès du service RH.
-                </p>
-                <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    Faire une demande
-                </button>
             </div>
         </div>
     );
