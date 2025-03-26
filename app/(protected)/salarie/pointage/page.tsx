@@ -1,134 +1,243 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { pointageService, PointageDTO } from "@/services/pointage-api";
-import AbsenceForm from "./absence-form";
-import AbsencesList from "./absences-list";
-import Resume from "./resume";
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, Check, X } from 'lucide-react';
+import authUserService from "@/services/authUser";
+import pointageService from "@/services/pointage-api";
+import { toast } from "@/components/ui/use-toast";
+import { PointageEntry } from "@/types/pointage";
 
 export default function PointagePage() {
-    const { toast } = useToast();
-    const { user } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [lastPointage, setLastPointage] = useState<PointageDTO | null>(null);
-    const [currentTab, setCurrentTab] = useState("pointage");
+    const [userInfo, setUserInfo] = useState<{
+        cin: string;
+        nom: string;
+        prenom: string;
+    } | null>(null);
+    const [todayPointage, setTodayPointage] = useState<PointageEntry | null>(null);
+    const [pointageHistory, setPointageHistory] = useState<PointageEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     useEffect(() => {
-        // Charger le dernier pointage de l'utilisateur
-        fetchLastPointage();
-    }, []);
-
-    const fetchLastPointage = async () => {
-        try {
-            const data = await pointageService.getDernierPointage();
-            setLastPointage(data);
-        } catch (error) {
-            console.error("Erreur lors du chargement du pointage", error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de charger le dernier pointage",
-                variant: "destructive",
-            });
+        const storedUserInfo = localStorage.getItem('userInfo');
+        if (storedUserInfo) {
+            const parsedUserInfo = JSON.parse(storedUserInfo);
+            setUserInfo(parsedUserInfo);
+            fetchInitialData();
+        } else {
+            authUserService.logout();
         }
-    };
+    }, [selectedMonth, selectedYear]);
 
-    const handlePointage = async (type: "ARRIVEE" | "DEPART") => {
-        setLoading(true);
+    const fetchInitialData = async () => {
         try {
-            const pointage = await pointageService.enregistrerPointage(type);
-
-            // Mise à jour de l'état local
-            setLastPointage(pointage);
-
+            const [pointage, history] = await Promise.all([
+                pointageService.getTodayPointage(),
+                pointageService.getUserPointages(
+                    selectedMonth.toString().padStart(2, '0'),
+                    selectedYear
+                )
+            ]);
+            setTodayPointage(pointage);
+            setPointageHistory(history);
+        } catch (error) {
+            console.error('Erreur de récupération des données:', error);
             toast({
-                title: "Pointage enregistré",
-                description: `Vous avez enregistré votre ${type === "ARRIVEE" ? "arrivée" : "départ"} avec succès.`,
-            });
-        } catch (error: any) {
-            toast({
-                title: "Erreur",
-                description: error.message || "Impossible d'enregistrer le pointage",
-                variant: "destructive",
+                title: 'Erreur',
+                description: 'Impossible de récupérer les données',
+                variant: 'destructive'
             });
         } finally {
             setLoading(false);
         }
     };
 
-    const shouldShowArriveeButton = !lastPointage || lastPointage.type === "DEPART";
-    const shouldShowDepartButton = lastPointage && lastPointage.type === "ARRIVEE";
+    const handlePointage = async (type: 'ARRIVEE' | 'DEPART') => {
+        if (!userInfo) return;
+
+        try {
+            const newPointage = await pointageService.createPointage({
+                type: type
+            });
+
+            setTodayPointage(newPointage);
+            fetchInitialData(); // Refresh history after new pointage
+
+            toast({
+                title: 'Pointage enregistré',
+                description: `${type === 'ARRIVEE' ? 'Arrivée' : 'Départ'} enregistré avec succès`,
+            });
+        } catch (error: any) {
+            toast({
+                title: 'Erreur de pointage',
+                description: error.message || 'Impossible d\'enregistrer le pointage',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const renderMonthSelector = () => {
+        const months = [
+            'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+            'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+        ];
+
+        return (
+            <div className="flex items-center space-x-4 mb-4">
+                <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    {months.map((month, index) => (
+                        <option key={index} value={index + 1}>{month}</option>
+                    ))}
+                </select>
+                <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    {[2023, 2024, 2025].map((year) => (
+                        <option key={year} value={year}>{year}</option>
+                    ))}
+                </select>
+            </div>
+        );
+    };
+
+    const renderPointageHistory = () => {
+        if (pointageHistory.length === 0) {
+            return (
+                <div className="text-gray-500 text-center py-4">
+                    Aucun historique de pointage pour cette période
+                </div>
+            );
+        }
+
+        return (
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <table className="w-full">
+                    <thead className="bg-gray-100 border-b">
+                    <tr>
+                        <th className="p-3 text-left">Date</th>
+                        <th className="p-3 text-left">Heure</th>
+                        <th className="p-3 text-left">Type</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {pointageHistory.map((entry) => {
+                        const date = new Date(entry.timestamp);
+                        return (
+                            <tr key={entry.id} className="border-b last:border-b-0 hover:bg-gray-50">
+                                <td className="p-3">
+                                    <div className="flex items-center">
+                                        <Calendar className="mr-2 text-gray-500" size={18} />
+                                        {date.toLocaleDateString()}
+                                    </div>
+                                </td>
+                                <td className="p-3">
+                                    <div className="flex items-center">
+                                        <Clock className="mr-2 text-gray-500" size={18} />
+                                        {date.toLocaleTimeString()}
+                                    </div>
+                                </td>
+                                <td className="p-3">
+                                    {entry.type === 'ARRIVEE' ? (
+                                        <span className="flex items-center text-green-600">
+                                                <Check className="mr-2" size={18} /> Arrivée
+                                            </span>
+                                    ) : (
+                                        <span className="flex items-center text-red-600">
+                                                <X className="mr-2" size={18} /> Départ
+                                            </span>
+                                    )}
+                                </td>
+                            </tr>
+                        );
+                    })}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen">Chargement...</div>;
+    }
 
     return (
-        <div className="container mx-auto py-6">
-            <h1 className="text-2xl font-bold mb-6">Gestion du temps</h1>
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+            <h1 className="text-3xl font-bold mb-6 text-gray-800">
+                Pointage de {userInfo?.prenom} {userInfo?.nom}
+            </h1>
 
-            <Tabs value={currentTab} onValueChange={setCurrentTab}>
-                <TabsList className="mb-4">
-                    <TabsTrigger value="pointage">Pointage</TabsTrigger>
-                    <TabsTrigger value="absence">Demande d{"'"}absence</TabsTrigger>
-                    <TabsTrigger value="resume">Mon résumé</TabsTrigger>
-                </TabsList>
+            <div className="grid md:grid-cols-2 gap-6">
+                {/* Today's Pointage Section */}
+                <div className="bg-white shadow-md rounded-lg p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">Pointage du jour</h2>
+                    {todayPointage ? (
+                        <div className="flex items-center space-x-4 mb-4">
+                            <Clock className="text-blue-500" size={24} />
+                            <p className="text-gray-700">
+                                Dernier pointage :
+                                {todayPointage.type === 'ARRIVEE' ? ' Arrivée ' : ' Départ '}
+                                à {new Date(todayPointage.timestamp).toLocaleTimeString()}
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 mb-4">Aucun pointage aujourd'hui</p>
+                    )}
 
-                <TabsContent value="pointage">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Pointage journalier</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col items-center space-y-4">
-                                <div className="text-center mb-6">
-                                    {lastPointage && (
-                                        <p>
-                                            Dernier pointage : {lastPointage.type === "ARRIVEE" ? "Arrivée" : "Départ"} à{" "}
-                                            {new Date(lastPointage.timestamp).toLocaleTimeString()}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="flex space-x-4">
-                                    {shouldShowArriveeButton && (
-                                        <Button
-                                            size="lg"
-                                            onClick={() => handlePointage("ARRIVEE")}
-                                            disabled={loading}
-                                            className="bg-green-600 hover:bg-green-700 text-white"
-                                        >
-                                            Arrivée
-                                        </Button>
-                                    )}
-
-                                    {shouldShowDepartButton && (
-                                        <Button
-                                            size="lg"
-                                            onClick={() => handlePointage("DEPART")}
-                                            disabled={loading}
-                                            className="bg-orange-500 hover:bg-orange-600 text-white"
-                                        >
-                                            Départ
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="absence">
-                    <div className="space-y-6">
-                        <AbsenceForm />
-                        <AbsencesList />
+                    <div className="flex space-x-4">
+                        <button
+                            onClick={() => handlePointage('ARRIVEE')}
+                            disabled={todayPointage?.type === 'ARRIVEE'}
+                            className="flex-1 bg-green-500 text-white px-4 py-2 rounded
+                            disabled:bg-green-200 hover:bg-green-600 transition-colors
+                            flex items-center justify-center space-x-2"
+                        >
+                            <Check size={20} />
+                            <span>Pointer Arrivée</span>
+                        </button>
+                        <button
+                            onClick={() => handlePointage('DEPART')}
+                            disabled={!todayPointage || todayPointage.type === 'DEPART'}
+                            className="flex-1 bg-red-500 text-white px-4 py-2 rounded
+                            disabled:bg-red-200 hover:bg-red-600 transition-colors
+                            flex items-center justify-center space-x-2"
+                        >
+                            <X size={20} />
+                            <span>Pointer Départ</span>
+                        </button>
                     </div>
-                </TabsContent>
+                </div>
 
-                <TabsContent value="resume">
-                    <Resume />
-                </TabsContent>
-            </Tabs>
+                {/* Month Selection and Stats */}
+                <div className="bg-white shadow-md rounded-lg p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">Statistiques</h2>
+                    {renderMonthSelector()}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg text-center">
+                            <p className="text-sm text-gray-600">Total Pointages</p>
+                            <p className="text-2xl font-bold text-blue-600">{pointageHistory.length}</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg text-center">
+                            <p className="text-sm text-gray-600">Arrivées</p>
+                            <p className="text-2xl font-bold text-green-600">
+                                {pointageHistory.filter(p => p.type === 'ARRIVEE').length}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Pointage History Section */}
+            <div className="mt-8">
+                <h2 className="text-2xl font-bold mb-4 text-gray-800">Historique de Pointage</h2>
+                {renderPointageHistory()}
+            </div>
         </div>
     );
 }

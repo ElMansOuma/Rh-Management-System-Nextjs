@@ -1,141 +1,123 @@
-// services/pointage-api.ts
-import { PieceJustificative } from "@/services/api";
+import { PointageRequest, PointageEntry } from '@/types/pointage';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-export interface PointageDTO {
-    id?: number;
-    type: 'ARRIVEE' | 'DEPART';
-    timestamp: string;
-}
-
-export interface PointageResumeDTO {
-    totalArrivees: number;
-    totalDeparts: number;
-    pointages: PointageDTO[];
-}
-
-export interface ApiErrorResponse {
-    message: string;
-    status: number;
-}
-
-export interface Collaborateur {
-    id?: number;
-    nom: string;
-    prenom: string;
-    cin: string;
-    dateNaissance: string;
-    lieuNaissance: string;
-    adresseDomicile: string;
-    adresse?: string; // For compatibility with the form
-    cnss: string;
-    origine: string;
-    niveauEtude: string;
-    specialite: string;
-    dateEntretien: string;
-    dateEmbauche: string;
-    description: string;
-    piecesJustificatives?: PieceJustificative[];
-}
-
-export class ApiError extends Error {
-    status: number;
-
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = 'ApiError';
-        this.status = status;
-    }
-}
-
-export const pointageService = {
-    enregistrerPointage: async (cin: string, type: 'ARRIVEE' | 'DEPART') => {
+const pointageService = {
+    async createPointage(data: PointageRequest): Promise<PointageEntry> {
         try {
-            const authToken = localStorage.getItem('authToken');
-            if (!authToken) {
-                throw new ApiError('Token non authentifié', 401);
+            const token = localStorage.getItem('userToken');
+            const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+            if (!token) {
+                throw new Error('Non authentifié');
             }
-
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pointage/${cin}`, {
+            const response = await fetch(`${API_URL}/api/pointage?cin=${userInfo.cin}`, {
                 method: 'POST',
                 headers: {
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
                 },
-                body: JSON.stringify({ type })
+                body: JSON.stringify({ type: data.type })
             });
-
             if (!response.ok) {
-                const errorData: ApiErrorResponse = await response.json();
-                throw new ApiError(
-                    errorData.message || "Impossible d'enregistrer le pointage",
-                    response.status
-                );
+                const errorText = await response.text();
+                throw new Error(errorText || 'Erreur lors de l\'enregistrement du pointage');
             }
-
-            return await response.json() as PointageDTO;
+            return await response.json();
         } catch (error) {
-            console.error("Erreur lors de l'enregistrement du pointage:", error);
+            console.error('Erreur de pointage:', error);
             throw error;
         }
     },
 
-    getDernierPointage: async (cin: string): Promise<PointageDTO | null> => {
+    async getTodayPointage(): Promise<PointageEntry | null> {
         try {
-            const authToken = localStorage.getItem('authToken');
-            if (!authToken) {
-                throw new ApiError('Token non authentifié', 401);
+            const token = localStorage.getItem('userToken');
+            const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+            if (!token) {
+                throw new Error('Non authentifié');
             }
-
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pointage/last/${cin}`, {
+            const response = await fetch(`${API_URL}/api/pointage/today?cin=${userInfo.cin}`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`
-                }
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
             });
-
             if (response.status === 204) {
                 return null;
             }
-
             if (!response.ok) {
-                const errorData: ApiErrorResponse = await response.json();
-                throw new ApiError(
-                    errorData.message || "Impossible de récupérer le dernier pointage",
-                    response.status
-                );
+                const errorText = await response.text();
+                throw new Error(errorText || 'Erreur lors de la récupération du pointage');
             }
-
-            return await response.json() as PointageDTO;
+            return await response.json();
         } catch (error) {
-            console.error("Erreur lors de la récupération du dernier pointage:", error);
+            console.error('Erreur de récupération du pointage:', error);
             throw error;
         }
     },
 
-    getPointageResume: async (cin: string): Promise<PointageResumeDTO> => {
+    async getUserPointages(month?: string, year?: number): Promise<PointageEntry[]> {
         try {
-            const authToken = localStorage.getItem('authToken');
-            if (!authToken) {
-                throw new ApiError('Token non authentifié', 401);
+            const token = localStorage.getItem('userToken');
+            const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+            if (!token) {
+                throw new Error('Non authentifié');
+            }
+            const url = new URL(`${API_URL}/api/pointage/user`);
+            url.searchParams.append('cin', userInfo.cin);
+            if (month) url.searchParams.append('month', month);
+            if (year) url.searchParams.append('year', year.toString());
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Erreur lors de la récupération des pointages');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Erreur de récupération des pointages:', error);
+            throw error;
+        }
+    },
+    async getAllPointages(month?: string, year?: number): Promise<PointageEntry[]> {
+        try {
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                throw new Error('Non authentifié');
             }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pointage/resume/${cin}`, {
+            const url = new URL(`${API_URL}/api/pointage/admin/all`);
+
+            // Ajouter les paramètres de filtrage
+            if (month) url.searchParams.append('month', month);
+            if (year) url.searchParams.append('year', year.toString());
+
+            const response = await fetch(url.toString(), {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`
-                }
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
             });
 
             if (!response.ok) {
-                const errorData: ApiErrorResponse = await response.json();
-                throw new ApiError(
-                    errorData.message || "Impossible de récupérer le résumé des pointages",
-                    response.status
-                );
+                const errorText = await response.text();
+                throw new Error(errorText || 'Erreur lors de la récupération des pointages');
             }
 
-            return await response.json() as PointageResumeDTO;
+            return await response.json();
         } catch (error) {
-            console.error("Erreur lors de la récupération du résumé des pointages:", error);
+            console.error('Erreur de récupération des pointages:', error);
             throw error;
         }
-    }
+    },
+
 };
+
+
+export default pointageService;

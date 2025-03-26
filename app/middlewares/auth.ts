@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
     const token = request.cookies.get('token')?.value;
 
     // Vérifier si l'utilisateur tente d'accéder à une route protégée
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/(protected)') ||
+    const isProtectedRoute = request.nextUrl.pathname.startsWith('/(protected)/Admin') ||
         request.nextUrl.pathname.includes('/dashboard') ||
         request.nextUrl.pathname.includes('/profil') ||
         request.nextUrl.pathname.includes('/collaborateurs') ||
