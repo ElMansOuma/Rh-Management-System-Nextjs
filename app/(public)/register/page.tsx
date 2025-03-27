@@ -83,7 +83,7 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-900">
             <Card className="w-full max-w-md p-8 bg-gray-800/50 backdrop-blur-sm border-gray-700">
                 <div className="flex flex-col items-center mb-8">
                     <Building2 className="h-12 w-12 text-blue-200 mb-4" />
@@ -94,13 +94,13 @@ export default function Register() {
                 </div>
 
                 {error && (
-                    <div className="bg-red-500/20 border border-red-500 p-3 rounded mb-4 text-white">
+                    <div className="bg-red-500/20 border border-red-500 p-3 rounded mb-4 text-red-300">
                         {error}
                     </div>
                 )}
 
                 {success && (
-                    <div className="bg-green-500/20 border border-green-500 p-3 rounded mb-4 text-white">
+                    <div className="bg-green-500/20 border border-green-500 p-3 rounded mb-4 text-green-300">
                         {success}
                     </div>
                 )}
@@ -110,6 +110,7 @@ export default function Register() {
                         <Label htmlFor="name" className="text-white">Nom complet</Label>
                         <Input
                             id="name"
+                            type="text"
                             value={formData.name}
                             onChange={handleChange}
                             required
@@ -122,11 +123,10 @@ export default function Register() {
                         <Input
                             id="email"
                             type="email"
-                            placeholder="votre@email.com"
                             value={formData.email}
                             onChange={handleChange}
                             required
-                            className="bg-gray-700/50 border-gray-600 text-white placeholder:text-white/50"
+                            className="bg-gray-700/50 border-gray-600 text-white"
                         />
                     </div>
 
@@ -140,7 +140,7 @@ export default function Register() {
                             required
                             className="bg-gray-700/50 border-gray-600 text-white"
                         />
-                        <p className="text-xs text-white/50">Au moins 6 caractères</p>
+                        <p className="text-xs text-white/70 mt-1">Au moins 6 caractères</p>
                     </div>
 
                     <div className="space-y-2">
@@ -157,7 +157,7 @@ export default function Register() {
 
                     <Button
                         type="submit"
-                        className="w-full bg-blue-200 text-gray-800 hover:bg-blue-300"
+                        className="w-full bg-blue-200 text-gray-800 hover:bg-blue-300 transition-colors duration-300"
                         disabled={isLoading}
                     >
                         {isLoading ? 'Inscription en cours...' : 'S\'inscrire'}
@@ -171,10 +171,9 @@ export default function Register() {
                             Se connecter
                         </Link>
                     </p>
-
-                    <Link href="/" className="text-sm text-white/70 hover:text-blue-200 inline-flex items-center">
+                    <Link href="/" className="text-sm text-white/70 hover:text-blue-200 inline-flex items-center justify-center">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Retour à l&apos;accueil
+                        Retour à l'accueil
                     </Link>
                 </div>
             </Card>

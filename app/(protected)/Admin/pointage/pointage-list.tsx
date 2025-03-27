@@ -1,3 +1,4 @@
+// components/AdminPointageList.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -5,7 +6,6 @@ import {
     Calendar,
     Filter,
     Download,
-    UserCircle2,
     ArrowUpDown
 } from 'lucide-react';
 import {
@@ -64,10 +64,10 @@ export default function AdminPointageList() {
                 filters.year
             );
             setPointages(fetchedPointages);
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 title: 'Erreur',
-                description: 'Impossible de récupérer les pointages',
+                description: error.message || 'Impossible de récupérer les pointages',
                 variant: 'destructive'
             });
         } finally {
@@ -76,7 +76,6 @@ export default function AdminPointageList() {
     };
 
     const handleExportCSV = () => {
-        // Créer et télécharger un fichier CSV
         const headers = ['CIN', 'Nom', 'Prénom', 'Date', 'Type', 'Heure'];
         const csvData = pointages.map(entry => {
             const date = new Date(entry.timestamp);
@@ -109,40 +108,26 @@ export default function AdminPointageList() {
             (entry.cin?.toLowerCase().includes(filters.search.toLowerCase()) || false)
         )
         .sort((a, b) => {
-            // Safe sorting with null/undefined handling
             const getCompareValue = (entry: PointageEntry, column: keyof PointageEntry) => {
-                const value = entry[column];
-
-                // Handle timestamp sorting
                 if (column === 'timestamp') {
                     return new Date(entry.timestamp).getTime();
                 }
 
-                // Handle string-based columns
-                if (typeof value === 'string') {
-                    return value.toLowerCase();
-                }
-
-                // Default fallback
-                return value;
+                const value = entry[column];
+                return typeof value === 'string' ? value.toLowerCase() : value;
             };
 
             const valueA = getCompareValue(a, sorting.column);
             const valueB = getCompareValue(b, sorting.column);
 
-            // Handle cases where values might be undefined
             if (valueA == null) return 1;
             if (valueB == null) return -1;
 
-            if (valueA < valueB) return sorting.direction === 'asc' ? -1 : 1;
-            if (valueA > valueB) return sorting.direction === 'asc' ? 1 : -1;
-            return 0;
+            return (valueA < valueB ? -1 : 1) * (sorting.direction === 'asc' ? 1 : -1);
         });
 
-    // Rest of the component remains the same as in the previous implementation
     const renderFilterSection = () => (
         <div className="flex flex-wrap items-center space-x-4 mb-6">
-            {/* Mois */}
             <Select
                 value={filters.month.toString()}
                 onValueChange={(value) => setFilters(prev => ({ ...prev, month: Number(value) }))}
@@ -162,7 +147,6 @@ export default function AdminPointageList() {
                 </SelectContent>
             </Select>
 
-            {/* Année */}
             <Select
                 value={filters.year.toString()}
                 onValueChange={(value) => setFilters(prev => ({ ...prev, year: Number(value) }))}
@@ -179,7 +163,6 @@ export default function AdminPointageList() {
                 </SelectContent>
             </Select>
 
-            {/* Recherche */}
             <div className="flex items-center space-x-2 flex-grow">
                 <Input
                     placeholder="Rechercher un collaborateur"
@@ -194,7 +177,6 @@ export default function AdminPointageList() {
         </div>
     );
 
-    // Rest of the component (renderPointagesTable and return) remains the same
     const renderPointagesTable = () => {
         if (loading) {
             return <div className="text-center py-4">Chargement des pointages...</div>;

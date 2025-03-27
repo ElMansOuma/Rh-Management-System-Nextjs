@@ -27,7 +27,10 @@ export default function Login() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({
+                    email,
+                    password
+                }),
             });
 
             const data = await response.json();
@@ -36,7 +39,12 @@ export default function Login() {
                 throw new Error(data.message || 'Erreur de connexion');
             }
 
-            // Stocker le token dans localStorage
+            // Vérification explicite du rôle ADMIN
+            if (data.role !== 'ADMIN') {
+                throw new Error('Accès réservé aux administrateurs');
+            }
+
+            // Stocker le token et les informations utilisateur de manière sécurisée
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify({
                 name: data.name,
@@ -44,7 +52,7 @@ export default function Login() {
                 role: data.role
             }));
 
-            // Redirection vers le tableau de bord
+            // Redirection vers le tableau de bord admin
             router.push('/Admin/dashboard');
         } catch (err) {
             console.error('Login error:', err);
@@ -55,29 +63,24 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <Card className="w-full max-w-md p-8 bg-gray-800/50 backdrop-blur-sm border-gray-700">
-                <div className="flex flex-col items-center mb-8">
-                    <Building2 className="h-12 w-12 text-blue-200 mb-4" />
-                    <h1 className="text-3xl font-bold text-white">Connexion</h1>
-                    <p className="text-white/70 mt-2 text-center">
-                        Accédez à votre espace de gestion RH
-                    </p>
+        <Card className="w-full max-w-md mx-auto">
+            <div className="space-y-6 p-6">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold">Connexion Admin</h1>
+                    <p className="text-sm text-gray-500">Espace réservé à l'administration</p>
                 </div>
 
                 {error && (
-                    <div className="bg-red-500/20 border border-red-500 p-3 rounded mb-4 text-white">
+                    <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="email" className="text-white">Email</Label>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <Label>Email administrateur</Label>
                         <Input
-                            id="email"
                             type="email"
-                            placeholder="votre@email.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -85,10 +88,9 @@ export default function Login() {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white">Mot de passe</Label>
+                    <div>
+                        <Label>Mot de passe</Label>
                         <Input
-                            id="password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -97,29 +99,17 @@ export default function Login() {
                         />
                     </div>
 
-                    <Button
-                        type="submit"
-                        className="w-full bg-blue-200 text-gray-800 hover:bg-blue-300"
-                        disabled={isLoading}
-                    >
+                    <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? 'Connexion en cours...' : 'Se connecter'}
                     </Button>
                 </form>
 
-                <div className="mt-6 text-center space-y-4">
-                    <p className="text-sm text-white/70">
-                        Vous n&apos;avez pas de compte ?{' '}
-                        <Link href="/register" className="text-blue-200 hover:underline">
-                            S&apos;inscrire
-                        </Link>
-                    </p>
-
-                    <Link href="/" className="text-sm text-white/70 hover:text-blue-200 inline-flex items-center">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Retour à l&apos;accueil
+                <div className="text-center space-y-2">
+                    <Link href="/" className="text-sm text-blue-500 hover:underline flex items-center justify-center">
+                        <ArrowLeft className="mr-2" size={16} /> Retour à l'accueil
                     </Link>
                 </div>
-            </Card>
-        </div>
+            </div>
+        </Card>
     );
 }

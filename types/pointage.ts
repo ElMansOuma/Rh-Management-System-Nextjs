@@ -1,19 +1,20 @@
-export type PointageType = 'ARRIVEE' | 'DEPART';
-
+// types/pointage.ts
 export interface PointageRequest {
-    type: PointageType;
+    type: 'ARRIVEE' | 'DEPART';
 }
 
 export interface PointageEntry {
-    id: number;
-    type: PointageType;
+    id?: number;
+    cin: string;
+    nom: string;
+    prenom: string;
     timestamp: string;
+    type: 'ARRIVEE' | 'DEPART';
 }
-export interface PointageEntry {
-    id: number;
-    type: PointageType;
-    timestamp: string;
-    cin?: string;
-    nom?: string;
-    prenom?: string;
+
+export interface UserInfo {
+    cin: string;
+    nom: string;
+    prenom: string;
+    roles: string[];
 }
